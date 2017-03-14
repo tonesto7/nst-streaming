@@ -16,7 +16,6 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var moment = require('moment');
-var ON_DEATH = require('death');
 var os = require("os");
 var EventSource = require('eventsource');
 var app = express();
@@ -138,15 +137,16 @@ function sendDataToST(data) {
 }
 
 function sendStatusToST(reason) {
+	var request2 = require('request');
 	var bData = { "exitReason": reason };
 	if (callbackUrl && stToken) {
 		var options = {
-			uri: callbackUrl + '/serviceStatus?access_token=' + stToken,
+			uri: callbackUrl + '/streamStatus?access_token=' + stToken,
 			method: 'POST',
 			body: JSON.stringify(bData)
 		};
 		console.log("url and token found");
-		request(options, function(error, response, body) {
+		request2(options, function(error, response, body) {
 			if (!error && response.statusCode == 200) {
 				console.log(body.id);
 				return true;
@@ -255,7 +255,7 @@ function exitHandler(options, err) {
     if (err) {
 		sendStatusToST("ClosedByError");
 	}
-    if (options.exit) process.exit(); 
+    if (options.exit) process.exit();
 }
 
 //do something when app is closing
