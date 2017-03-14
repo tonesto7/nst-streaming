@@ -16,6 +16,7 @@ var express = require('express');
 var bodyParser = require('body-parser');
 var session = require('express-session');
 var moment = require('moment');
+var ON_DEATH = require('death');
 var os = require("os");
 var EventSource = require('eventsource');
 var app = express();
@@ -35,31 +36,24 @@ var lastEventDt = null;
 //ad.start();
 
 app.post('/stream', function(req, res) {
-	nestToken = req.headers.token;
+	nestToken = req.headers.nesttoken;
 	callbackUrl = req.headers.callback;
 	requestStreamOn = req.headers.connstatus;
 	stToken = req.headers.sttoken;
-	//console.log('requestStreamOn: ' + requestStreamOn);
 	//console.log(req.headers);
 	manageStream();
 });
 
 //Returns Status of Service
 app.post('/status', function(req, res) {
-	//console.log('');
-	console.log('[' + getDtNow()+']: ', 'Status request received...');
+	callbackUrl = req.headers.callback;
+	stToken = req.headers.sttoken;
+	console.log('[' + getPrettyDt()+']: ', 'Status request received...');
+
 	var statRequest = require('request');
-	var callbackUrl = req.headers.callback;
-	//console.info('callbackUrl: ' + callbackUrl);
-	var token = req.headers.token;
-	//console.info('Token: ' + token);
-	//console.log('streaming: ' + isStreaming);
-	//console.log('serviceStartDt: ' + serviceStartDt);
-	//console.log('version: ' + codeVer);
-	//console.log("lastEvtDt: " + lastEventDt);
-	if (callbackUrl && token) {
+	if (callbackUrl && stToken) {
 		statRequest({
-			url: callbackUrl + '/streamStatus?access_token=' + token,
+			url: callbackUrl + '/streamStatus?access_token=' + stToken,
 			method: 'POST',
 			json: {
 				"streaming": isStreaming,
@@ -81,7 +75,8 @@ app.post('/status', function(req, res) {
 function manageStream() {
 	if (isStreaming && requestStreamOn == 'false') {
 		source.close();
-		console.log('[' + getDtNow()+']: ', "Streaming Connection has been Closed");
+		sendStatusToST("ManagerClosed");
+		console.log('[' + getPrettyDt()+']: ', "Streaming Connection has been Closed");
 		isStreaming = false;
 	} else if (!isStreaming && requestStreamOn == 'true') {
 		startStreaming();
@@ -98,7 +93,7 @@ function startStreaming() {
 		var data = e.data;
 		//console.log(data);
 		if(data) {
-			console.log('[' + getDtNow()+']: ', 'New Event Data Received...');
+			console.log('[' + getPrettyDt()+']: ', 'New Event Data Received...');
 			lastEventDt = getDtNow();
 			if (sendDataToST(data)) {
 				isStreaming = true;
@@ -106,7 +101,7 @@ function startStreaming() {
 		}
 	});
 	source.addEventListener('open', function(e) {
-		console.log('[' + getDtNow()+']: ', 'SmartThings Connection Opened!');
+		console.log('[' + getPrettyDt()+']: ', 'SmartThings Connection Opened!');
 		isStreaming = true;
 	});
 	source.addEventListener('auth_revoked', function(e) {
@@ -116,9 +111,9 @@ function startStreaming() {
 	});
 	source.addEventListener('error', function(e) {
 		if (e.readyState == EventSource.CLOSED) {
-			console.error('[' + getDtNow()+']: ', 'Stream Connection was closed! ', e);
+			console.error('[' + getPrettyDt()+']: ', 'Stream Connection was closed! ', e);
 		} else {
-			console.error('[' + getDtNow()+']: ', 'A Stream unknown error occurred: ', e);
+			console.error('[' + getPrettyDt()+']: ', 'A Stream unknown error occurred: ', e);
 		}
 		isStreaming = false;
 		source.close();
@@ -142,6 +137,29 @@ function sendDataToST(data) {
 	});
 }
 
+function sendStatusToST(reason) {
+	var bData = { "exitReason": reason };
+	if (callbackUrl && stToken) {
+		var options = {
+			uri: callbackUrl + '/serviceStatus?access_token=' + stToken,
+			method: 'POST',
+			body: JSON.stringify(bData)
+		};
+		console.log("url and token found");
+		request(options, function(error, response, body) {
+			if (!error && response.statusCode == 200) {
+				console.log(body.id);
+				return true;
+			} else if (error) {
+				console.log(error);
+				return false;
+			}
+		});
+	} else {
+		console.log("sendStatusToST: Can't send status because url or token missing...");
+	}
+}
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({
 	extended: false
@@ -161,7 +179,6 @@ function getIPAddress() {
 }
 
 function getHostInfo() {
-
 	var hostName = os.hostname();
 	var osType = os.type();
 	var osArch = os.arch();
@@ -191,11 +208,13 @@ function getLinuxPlatform() {
 }
 
 function getDtNow() {
+	var date = new Date();
+	return date.toISOString();
+}
+
+function getPrettyDt() {
 	if(moment) {
 		return moment().format('MMMM Do YYYY, h:mm:ss a');
-	} else {
-		var date = new Date();
-		return date.toISOString();
 	}
 }
 
@@ -225,3 +244,23 @@ var server = http.createServer(app);
 server.listen(port);
 console.info('NST Stream Service (v' + codeVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port+')');
 console.info('Waiting for NST Manager client to send the required data in order to initialize the Nest Event Stream');
+
+
+process.stdin.resume();//so the program will not close instantly
+
+function exitHandler(options, err) {
+    if (options.cleanup) {
+		sendStatusToST("ClosedByUserConsole");
+	 }
+    if (err) {
+		sendStatusToST("ClosedByError");
+	}
+    if (options.exit) process.exit();
+}
+
+//do something when app is closing
+process.on('exit', exitHandler.bind(null,{cleanup:true}));
+//catches ctrl+c event
+process.on('SIGINT', exitHandler.bind(null, {exit:true}));
+//catches uncaught exceptions
+process.on('uncaughtException', exitHandler.bind(null, {exit:true}));
