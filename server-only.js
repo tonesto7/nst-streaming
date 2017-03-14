@@ -255,7 +255,7 @@ function exitHandler(options, err) {
     if (err) {
 		sendStatusToST("ClosedByError");
 	}
-    if (options.exit) process.exit();
+    if (options.exit) process.exit(); 
 }
 
 //do something when app is closing
