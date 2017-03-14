@@ -7,6 +7,7 @@
     },
     "dependencies": {
         "body-parser": "^1.13.2",
+        "firebase": "^1.1.3",
         "cookie-parser": "^1.3.5",
         "eventsource": "^0.1.6",
         "express": "^4.13.1",
@@ -14,6 +15,8 @@
         "openurl": "^1.1.0",
         "request": "^2.74.0",
         "node-datetime": "^1.0.0",
-        "os": "^0.1.1"
+        "os": "^0.1.1",
+        "getos": "^2.8.4",
+        "moment": "^2.0.0"
     }
 }
