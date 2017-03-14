@@ -33,7 +33,7 @@ app.post('/stream', function(req, res) {
     //console.log(req.headers);
     console.log('streamOn: ' + streamOn);
     var streamPort = req.headers.port;
-    var stToken = req.headers.stToken;
+    var stToken = req.headers.sttoken;
     //console.log('ST_Token: ' + stToken);
 
     var source = new EventSource(NEST_API_URL + '?auth=' + token);
@@ -52,6 +52,8 @@ app.post('/stream', function(req, res) {
             request(options, function(error, response, body) {
                 if (!error && response.statusCode == 200) {
                     console.log(body.id);
+		} else if(error) {
+			console.log(error);
                 }
             });
             isStreaming = true;
@@ -67,22 +69,26 @@ app.post('/stream', function(req, res) {
         source.addEventListener('auth_revoked', function(e) {
             console.log('Stream Authentication token was revoked.');
             isStreaming = false;
+            source.close();
         });
         source.onerror = function(e) {
             console.error("Stream Error: " + e.message);
+            isStreaming = false;
+            source.close();
         };
         source.addEventListener('error', function(e) {
             if (e.readyState == EventSource.CLOSED) {
-                isStreaming = false;
                 console.error('Stream Connection was closed! ', e);
             } else {
                 console.error('A Stream unknown error occurred: ', e);
             }
+            isStreaming = false;
+            source.close();
         }, false);
     }
     else if (token && streamOn == 'false') {
         source.close();
-        isStreaming = true;
+        isStreaming = false;
     }
 });
 
@@ -94,11 +100,12 @@ app.post('/cmd', function(req, res) {
 });
 
 app.post('/status', function(req, res) {
+    console.log('Status request received...');
     var request3 = require('request');
     var callbackUrl = req.headers.callback;
-    console.info('callbackUrl: ' + callbackUrl);
+    //console.info('callbackUrl: ' + callbackUrl);
     var token = req.headers.token;
-    console.info('Token: ' + token);
+    //console.info('Token: ' + token);
     console.info('streaming: ' + isStreaming);
     if(callbackUrl && token) {
         request3({
@@ -112,7 +119,6 @@ app.post('/status', function(req, res) {
                 console.log(error);
             } else {
                 console.log(response.statusCode, body);
-                console.log('Status request received...');
             }
         });
     }
