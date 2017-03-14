@@ -31,7 +31,7 @@ var isStreaming = false;
 var serviceStartDt = getDtNow();
 var lastEventDt = null;
 
-//var ad = mdns.createAdvertisement(mdns.tcp('Nest-Event-Srvc'), 3000, ({ name: 'Nest Web Manager' }));
+//var ad = mdns.createAdvertisement(mdns.tcp('NST-Streaming'), 3000, ({ name: 'NST Streaming Service' }));
 //ad.start();
 
 app.post('/stream', function(req, res) {
