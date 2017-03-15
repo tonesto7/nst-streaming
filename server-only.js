@@ -28,7 +28,7 @@ var stToken = null;
 var callbackUrl = null;
 var requestStreamOn = false;
 var isStreaming = false;
-var serviceStartDt = getDtNow();
+var serviceStartDt = Date.now();
 var lastEventDt = null;
 
 //var ad = mdns.createAdvertisement(mdns.tcp('NST-Streaming'), 3000, ({ name: 'NST Streaming Service' }));
@@ -57,7 +57,7 @@ app.post('/status', function(req, res) {
 			json: {
 				"streaming": isStreaming,
 				"version": codeVer,
-				"startupDt": serviceStartDt,
+				"startupDt": getServiceUptime(),
 				"lastEvtDt": lastEventDt,
 				"hostInfo":getHostInfo()
 			}
@@ -176,6 +176,13 @@ function getIPAddress() {
 		}
 	}
 	return '0.0.0.0';
+}
+
+function getServiceUptime() {
+	var now = Date.now();
+	var diff = (now-serviceStartDt) /1000;
+	//console.log("diff: "+ diff);
+	return getHostUptimeStr(diff);
 }
 
 function getHostInfo() {
