@@ -91,12 +91,13 @@ function startStreaming() {
             lastEventDt = getDtNow();
             if (sendDataToST(data)) {
                 lastEventData = data;
+        	console.log('[' + getPrettyDt() + ']: ', "Data sent to ST");
                 isStreaming = true;
             }
         }
     });
     source.addEventListener('open', function(e) {
-        console.log('[' + getPrettyDt() + ']: ', 'SmartThings Connection Opened!');
+        console.log('[' + getPrettyDt() + ']: ', 'Nest Connection Opened!');
         isStreaming = true;
     });
     source.addEventListener('auth_revoked', function(e) {
@@ -133,6 +134,7 @@ function sendDataToST(data) {
             console.log(error);
             return false;
         }
+        return false; // prove above are not running
     });
 }
 
