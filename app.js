@@ -68,9 +68,10 @@ app.post('/status', function(req, res) {
 function manageStream() {
     if (isStreaming && requestStreamOn == 'false') {
         source.close();
+	lastEventData = null;
+	isStreaming = false;
         sendStatusToST("ManagerClosed");
         console.log('[' + getPrettyDt() + ']: ', "Streaming Connection has been Closed");
-        isStreaming = false;
     } else if (!isStreaming && requestStreamOn == 'true') {
         startStreaming();
         isStreaming = true;
@@ -100,8 +101,10 @@ function startStreaming() {
     });
     source.addEventListener('auth_revoked', function(e) {
         console.log('Stream Authentication token was revoked.');
-        isStreaming = false;
         source.close();
+	isStreaming = false;
+	lastEventData = null;
+        sendStatusToST("ManagerClosed");
     });
     source.addEventListener('error', function(e) {
         if (e.readyState == EventSource.CLOSED) {
@@ -109,8 +112,10 @@ function startStreaming() {
         } else {
             console.error('[' + getPrettyDt() + ']: ', 'A Stream unknown error occurred: ', e);
         }
-        isStreaming = false;
         source.close();
+	isStreaming = false;
+	lastEventData = null;
+        sendStatusToST("ManagerClosed");
     }, false);
 }
 
@@ -133,7 +138,14 @@ function sendDataToST(data) {
 
 function sendStatusToST(reason) {
     var request2 = require('request');
-    var bData = { "exitReason": reason };
+    var bData = { 
+	        "streaming": isStreaming,
+                "version": codeVer,
+                "startupDt": getServiceUptime(),
+                "lastEvtDt": lastEventDt,
+                "hostInfo": getHostInfo(),
+	        "exitReason": reason
+    };
     if (callbackUrl && stToken) {
         var options = {
             uri: callbackUrl + '/streamStatus?access_token=' + stToken,
