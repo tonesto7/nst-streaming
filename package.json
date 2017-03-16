@@ -5,6 +5,10 @@
     "scripts": {
         "start": "node server.js"
     },
+    "auto-updater":{
+    	"repo":"/tonesto7/nst-streaming",
+    	"branch":"master"
+    },
     "dependencies": {
         "nodemon": "^1.11.0",
         "eventsource": "^0.2.2",

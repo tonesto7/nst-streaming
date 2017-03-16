@@ -1,5 +1,5 @@
+// Beginning of NodeMon Code
 var nodemon = require('nodemon');
-
 nodemon({
     script: 'app.js'
 });

@@ -1,13 +1,13 @@
 /*
 	NST-Streaming
-	Version 0.0.3
+	Version 0.1.0
 	Author: Anthony Santilli
 	Copyright 2017 Anthony Santilli
 
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
  */
 
-var codeVer = "0.0.3";
+var codeVer = "0.1.0";
 var http = require('http');
 var request = require('request');
 var express = require('express');
@@ -16,7 +16,6 @@ var os = require("os");
 var EventSource = require('eventsource');
 var app = express();
 
-//var mdns = require('mdns');
 var nest_api_url = 'https://developer-api.nest.com';
 var source;
 var nestToken = null;
@@ -27,9 +26,7 @@ var isStreaming = false;
 var serviceStartTime = Date.now();
 var serviceStartDt = getDtNow();
 var lastEventDt = null;
-
-//var ad = mdns.createAdvertisement(mdns.tcp('NST-Streaming'), 3000, ({ name: 'NST Streaming Service' }));
-//ad.start();
+var lastEventData = null;
 
 app.post('/stream', function(req, res) {
     nestToken = req.headers.nesttoken;
@@ -88,10 +85,11 @@ function startStreaming() {
     source.addEventListener('put', function(e) {
         var data = e.data;
         //console.log(data);
-        if (data) {
+        if (data && lastEventData != data) {
             console.log('[' + getPrettyDt() + ']: ', 'New Event Data Received...');
             lastEventDt = getDtNow();
             if (sendDataToST(data)) {
+                lastEventData = data;
                 isStreaming = true;
             }
         }
@@ -213,7 +211,7 @@ function getDtNow() {
 
 function getPrettyDt() {
     if (moment) {
-        return moment().format('MMMM Do YYYY, h:mm:ss a');
+        return moment().format('MMMM Do YYYY, h:mm:ssa');
     }
 }
 
