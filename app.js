@@ -258,6 +258,7 @@ console.info('Waiting for NST Manager client to send the required data in order 
 process.stdin.resume(); //so the program will not close instantly
 
 function exitHandler(options, err) {
+    isStreaming = false;
     if (options.cleanup) {
         sendStatusToST("ClosedByUserConsole");
     }
