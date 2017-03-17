@@ -41,7 +41,7 @@ app.post('/stream', function(req, res) {
 app.post('/status', function(req, res) {
     callbackUrl = req.headers.callback;
     stToken = req.headers.sttoken;
-    console.log('[' + getPrettyDt() + ']: ', 'Client is Requesting Status...');
+    console.log('[' + getPrettyDt() + ']: ', 'SmartThings is Requesting Status...');
 
     var statRequest = require('request');
     if (callbackUrl && stToken) {
