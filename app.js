@@ -57,9 +57,9 @@ app.post('/status', function(req, res) {
             }
         }, function(error, response, body) {
             if (error) {
-                console.log(error);
+        	console.log("/status... ", error, response.statusCode, response.statusMessage);
             } else {
-                //console.log(response.statusCode, body);
+                //console.log("/status... ", response.statusCode, body);
             }
         });
     }
@@ -89,8 +89,9 @@ function startStreaming() {
         if (data && lastEventData != data) {
             console.log('[' + getPrettyDt() + ']: ', 'New Event Data Received...');
             lastEventDt = getDtNow();
+            lastEventData = data;
             if (sendDataToST(data)) {
-                lastEventData = data;
+// this is never reached...
         	console.log('[' + getPrettyDt() + ']: ', "Data sent to ST");
                 isStreaming = true;
             }
@@ -127,14 +128,14 @@ function sendDataToST(data) {
         body: data
     };
     request(options, function(error, response, body) {
-        if (!error && response.statusCode == 200) {
-            console.log(body.id);
+        if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
+            //console.log("sendDataToST body.id... ", body.id);
             return true;
-        } else if (error) {
-            console.log(error);
+        } else {
+            console.log("sendDataToST... ", error, response.statusCode, response.statusMessage);
+	    lastEventData = null;
             return false;
         }
-        return false; // prove above are not running
     });
 }
 
@@ -156,11 +157,11 @@ function sendStatusToST(reason) {
         };
         console.log("url and token found");
         request2(options, function(error, response, body) {
-            if (!error && response.statusCode == 200) {
-                console.log(body.id);
+            if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
+                //console.log("sendStatusToST...body ", body.id);
                 return true;
-            } else if (error) {
-                console.log(error);
+            } else {
+            	console.log("sendStatusToST...error ", error, response.statusCode, response.statusMessage);
                 return false;
             }
         });
