@@ -141,19 +141,18 @@ function sendDataToST(data) {
 
 function sendStatusToST(reason) {
     var request2 = require('request');
-    var bData = { 
+    if (callbackUrl && stToken) {
+        var options = {
+            uri: callbackUrl + '/streamStatus?access_token=' + stToken,
+            method: 'POST',
+            json: {
 	        "streaming": isStreaming,
                 "version": codeVer,
                 "startupDt": getServiceUptime(),
                 "lastEvtDt": lastEventDt,
                 "hostInfo": getHostInfo(),
 	        "exitReason": reason
-    };
-    if (callbackUrl && stToken) {
-        var options = {
-            uri: callbackUrl + '/streamStatus?access_token=' + stToken,
-            method: 'POST',
-            body: JSON.stringify(bData)
+            }
         };
         console.log("url and token found");
         request2(options, function(error, response, body) {
