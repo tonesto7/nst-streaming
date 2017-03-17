@@ -86,13 +86,13 @@ function startStreaming() {
     source.addEventListener('put', function(e) {
         var data = e.data;
         //console.log(data);
+        console.log('[' + getPrettyDt() + ']: ', 'New Event Data Received...');
         if (data && lastEventData != data) {
-            console.log('[' + getPrettyDt() + ']: ', 'New Event Data Received...');
             lastEventDt = getDtNow();
             lastEventData = data;
+            console.log('[' + getPrettyDt() + ']: ', "Data sent to ST");
             if (sendDataToST(data)) {
 // this is never reached...
-        	console.log('[' + getPrettyDt() + ']: ', "Data sent to ST");
                 isStreaming = true;
             }
         }
@@ -254,7 +254,7 @@ app.set('port', port);
 
 var server = http.createServer(app);
 server.listen(port);
-console.info('NST Stream Service (v' + codeVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ')');
+console.info('[' + getPrettyDt() + ']: NST Stream Service (v' + codeVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ')');
 console.info('Waiting for NST Manager client to send the required data in order to initialize the Nest Event Stream');
 
 
