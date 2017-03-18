@@ -130,10 +130,10 @@ app.post('/status', function(req, res) {
 function manageStream() {
 	if (isStreaming && requestStreamOn == 'false') {
 		source.close();
+		logger.warn('Streaming Connection has been Closed');
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
-		logger.warn('Streaming Connection has been Closed');
 	} else if (!isStreaming && requestStreamOn == 'true') {
 		startStreaming();
 		isStreaming = true;
