@@ -117,20 +117,20 @@ app.post('/status', function(req, res) {
 			}
 		}, function(error, response, body) {
 			if (error) {
-				   logger.error('/status error... ', error, response.statusCode, response.statusMessage);
+				   logger.verbose('/status error... ', error, response.statusCode, response.statusMessage);
 			} else {
 				//logger.debug('/status... ', response.statusCode, body);
 			}
 		});
 	} else {
-		logger.warn('/status: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
+		logger.trace('/status: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
 	}
 });
 
 function manageStream() {
 	if (isStreaming && requestStreamOn == 'false') {
 		source.close();
-		logger.warn('Streaming Connection has been Closed');
+		logger.info('Streaming Connection has been Closed');
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
@@ -164,22 +164,22 @@ function startStreaming() {
 		isStreaming = true;
 	});
 	source.addEventListener('auth_revoked', function(e) {
-		logger.warn('Stream Authentication token was revoked.');
+		logger.info('Stream Authentication token was revoked.');
 		source.close();
 		isStreaming = false;
 		lastEventData = null;
-		sendStatusToST("ManagerClosed");
+		sendStatusToST("Authrevoked");
 	});
 	source.addEventListener('error', function(e) {
 		if (e.readyState == EventSource.CLOSED) {
-			logger.warn('Stream Connection was closed! ', e);
+			logger.debug('Stream Connection was closed! ', e);
 		} else {
-			logger.error('A Stream unknown error occurred: ', e);
+			logger.verbose('A Stream unknown error occurred: ', e);
 		}
 		source.close();
 		isStreaming = false;
 		lastEventData = null;
-		sendStatusToST("ManagerClosed");
+		sendStatusToST("StreamError");
 	}, false);
 }
 
@@ -194,7 +194,7 @@ function sendDataToST(data) {
 			//logger.debug("sendDataToST body.id... ", body.id);
 			return true;
 		} else {
-			logger.error('sendDataToST...error ', error, response.statusCode, response.statusMessage);
+			logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
 		lastEventData = null;
 			return false;
 		}
@@ -216,18 +216,18 @@ function sendStatusToST(reason) {
 			    'exitReason': reason
 			}
 		};
-		logger.debug('url and token found');
+		logger.debug('sendStatusToST: url and token found, reason: ' + reason);
 		request2(options, function(error, response, body) {
 			if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
 				//logger.debug("sendStatusToST...body ", body.id);
 				return true;
 			} else {
-				logger.error('sendStatusToST...error', error, response.statusCode, response.statusMessage);
+				logger.verbose('sendStatusToST...error', error, response.statusCode, response.statusMessage);
 				return false;
 			}
 		});
 	} else {
-		logger.warn('sendStatusToST: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
+		logger.trace('sendStatusToST: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
 	}
 }
 
@@ -282,7 +282,7 @@ function getLinuxPlatform() {
 	var getos = require('getos');
 	getos(function(e, os) {
 		if (e) {
-			return logger.error(e);
+			return logger.verbose(e);
 		} else {
 			osval = JSON.stringify(os);
 		}
@@ -348,7 +348,6 @@ server.listen(port);
 logger.info('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ')');
 logger.info('Waiting for NST Manager to send this service the signal to initialize the Nest Event Stream...');
 
-
 process.stdin.resume(); //so the program will not close instantly
 
 function exitHandler(options, err) {
@@ -358,7 +357,7 @@ function exitHandler(options, err) {
 		sendStatusToST('ClosedByUserConsole');
 	}
 	if (err) {
-		logger.error('exitHandler error', err);
+		logger.verbose('exitHandler error', err);
 		sendStatusToST('ClosedByError');
 	}
 	if (options.exit) process.exit();
