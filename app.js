@@ -383,7 +383,7 @@ var gracefulStop = function() {
 	if(source) { 
 		source.close(
 			function () {
-				process.exit(130);
+				process.exit(131);
 			}
 		);
 	}
@@ -391,7 +391,7 @@ var gracefulStop = function() {
 		function() {
 			sendStatusToST('ClosedByUserConsole');
 			console.error("Could not close connections in time, forcefully shutting down");
-			process.exit(131)
+			process.exit(0)
 		},
 	2*1000);
 }
@@ -409,4 +409,4 @@ process.on('SIGHUP', gracefulStop);
 process.on('SIGTERM', gracefulStop);
 
 //catches uncaught exceptions
-//process.on('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
+//process.once('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
