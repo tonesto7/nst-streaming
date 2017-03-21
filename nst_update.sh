@@ -3,8 +3,11 @@
 srvc_name="nst-streaming.service"
 old_srvc="etc/systemd/system/nst-streaming.service"
 new_srvc="/home/pi/nst-streaming-master/nst-streaming.service"
+zip_file="/home/pi/nst-streaming-master.zip"
+app_dir="/home/pi/nst-streaming-master"
 
 check_for_update() {
+    echo "Checking for Newer file on remote server..."
     remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip"
     local_file="/home/pi/nst-streaming-master.zip"
 
@@ -17,6 +20,8 @@ check_for_update() {
     if [ $local_ctime -lt $remote_ctime ];
     then
         download_zip
+    else
+        echo "Your version is the current...Skipping..."
     fi
 }
 
@@ -26,12 +31,17 @@ download_zip() {
     sudo unzip -o /home/pi/nst-streaming-master.zip /home/pi/nst-streaming-master
     cd /home/pi/nst-streaming-master
     sudo npm install
+    check_srvc_file
+}
+
+check_srvc_file() {
     if [ -d "/home/pi/nst-streaming-master" ];
     then
         if [ -f "$old_srvc" ];
         then
             if [[ ! "$old_srvc" -ef "$new_srvc" ]];
             then
+                echo "New NST Streaming Service File found. Updating Service!!!"
                 if [ -f "$old_srvc" ];
                 then
                     remove_srvc
@@ -67,7 +77,7 @@ update_srvc() {
     fi
 }
 
-if [ -f "/home/pi/nst-streaming-master.zip" ];
+if [ -f "$zip_file" ] || [ ! -f "$old_srvc"];
 then
     check_for_update
 else
