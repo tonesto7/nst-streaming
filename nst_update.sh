@@ -10,13 +10,13 @@ check_for_update() {
     echo "Checking for Newer file on remote server..."
     remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip"
     local_file="/home/pi/nst-streaming-master.zip"
-
     modified=$(curl --silent --head $remote_file |
                awk -F: '/^Last-Modified/ { print $2 }')
     remote_ctime=$(date --date="$modified" +%s)
     local_ctime=$(stat -c %z "$local_file")
     local_ctime=$(date --date="$local_ctime" +%s)
-
+    echo "local file time: $local_ctime"
+    echo "remote file time: $remote_ctime"
     if [ $local_ctime -lt $remote_ctime ];
     then
         download_zip
@@ -28,14 +28,15 @@ check_for_update() {
 download_zip() {
     echo "Downloading nst-streaming-master.zip..."
     sudo wget -N https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip -P /home/pi
-    sudo unzip -o /home/pi/nst-streaming-master.zip /home/pi/nst-streaming-master
+    cd /home/p
+    sudo unzip -o nst-streaming-master.zip
     cd /home/pi/nst-streaming-master
     sudo npm install
     check_srvc_file
 }
 
 check_srvc_file() {
-    if [ -d "/home/pi/nst-streaming-master" ];
+    if [ -d $app_dir ];
     then
         if [ -f $old_srvc ];
         then
