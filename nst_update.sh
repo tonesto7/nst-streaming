@@ -4,21 +4,11 @@ srvc_name="nst-streaming.service"
 old_srvc="etc/systemd/system/nst-streaming.service"
 new_srvc="/home/pi/nst-streaming-master/nst-streaming.service"
 
-sudo wget -N https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip
-sudo unzip -o nst-streaming-master.zip
-cd nst-streaming-master
+sudo wget -N https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip -P /home/pi
+sudo unzip -o /home/pi/nst-streaming-master.zip /home/pi/nst-streaming-master
+cd /home/pi/nst-streaming-master
 
 sudo npm install
-
-if [ -f "$old_srvc" ];
-then
-    if [[ "$old_srvc" -ef "$new_srvc" ]];
-    then
-        echo "Existing NST Streaming Service File is same as downloaded version"
-    else
-        update_srvc
-    fi
-fi
 
 update_srvc () {
     echo "Disabling and Removing existing NST Streaming Service File"
@@ -36,3 +26,16 @@ update_srvc () {
         sudo systemctl start "$srvc_name"
     fi
 }
+
+if [ -f "$old_srvc" ];
+then
+    if [[ "$old_srvc" -ef "$new_srvc" ]];
+    then
+        echo "Existing NST Streaming Service File is same as downloaded version"
+    else
+        update_srvc
+    fi
+else
+    echo "NST Streaming Service is Missing..."
+    update_srvc
+fi
