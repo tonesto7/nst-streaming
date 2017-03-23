@@ -1,7 +1,7 @@
 #/bin/bash
 
 srvc_name="nst-streaming.service"
-old_srvc="etc/systemd/system/nst-streaming.service"
+old_srvc="/etc/systemd/system/nst-streaming.service"
 new_srvc="/home/pi/nst-streaming-master/nst-streaming.service"
 zip_file="/home/pi/nst-streaming-master.zip"
 app_dir="/home/pi/nst-streaming-master"
@@ -38,8 +38,10 @@ download_zip() {
 check_srvc_file() {
     if [ -d $app_dir ];
     then
+
         if [ -f $old_srvc ];
         then
+            echo "Existing NST Streaming Service File found"
             if [[ ! $old_srvc -ef $new_srvc ]];
             then
                 echo "New NST Streaming Service File found. Removing Old Service and Updating!!!"
@@ -49,7 +51,7 @@ check_srvc_file() {
                 echo "Existing NST Streaming Service File is same as downloaded version"
             fi
         else
-            echo "NST Streaming Service is Missing..."
+            echo "Existing NST Streaming Service is Missing..."
             update_srvc
         fi
     fi
@@ -69,6 +71,7 @@ update_srvc() {
 
         echo "Reloading Systemd Daemon to reflect service changes..."
         sudo systemctl daemon-reload
+        echo "Enabling NST Service..."
         sudo systemctl enable $srvc_name
         echo "Starting up NST Streaming Service..."
         sudo systemctl start $srvc_name
