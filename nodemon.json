@@ -1,3 +1,4 @@
 {
-    "delay": "5000"
+    "delay": "5000",
+    "ignore": ["*.sh", "*.md", "*.service", "package.json", ".gitignore"],
 }

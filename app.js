@@ -1,14 +1,13 @@
 /*jshint esversion: 6 */
 /*
 	NST-Streaming
-	Version 0.2.0
 	Author: Anthony Santilli
 	Copyright 2017 Anthony Santilli
 
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.2.0';
+var appVer = '0.3.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -28,7 +27,7 @@ if (!fs.existsSync(logDir)) {
 	fs.mkdirSync(logDir);
 }
 
-var source;
+var evtSource;
 var nestToken = null;
 var stToken = null;
 var callbackUrl = null;
@@ -102,7 +101,7 @@ app.post('/stream', function(req, res) {
 app.post('/status', function(req, res) {
 	callbackUrl = req.headers.callback;
 	stToken = req.headers.sttoken;
-	logger.info('SmartThings is Requesting Status...' + process.pid);
+	logger.info('SmartThings is Requesting Status... | PID: ' + process.pid);
 
 	var statRequest = require('request');
 	if (callbackUrl && stToken) {
@@ -130,7 +129,7 @@ app.post('/status', function(req, res) {
 
 function manageStream() {
 	if (isStreaming && requestStreamOn == 'false') {
-		if(source) { source.close(); logger.info('Streaming Connection has been Closed'); }
+		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
@@ -144,49 +143,58 @@ function manageStream() {
 
 function startStreaming() {
 	//logger.debug("Start Stream");
-	source = new EventSource(nest_api_url + '?auth=' + nestToken);
-	source.addEventListener('put', function(e) {
+	evtSource = new EventSource(nest_api_url + '?auth=' + nestToken);
+	evtSource.addEventListener('put', function(e) {
 		var data = e.data;
 		//logger.debug(data);
 		try {
-			logger.info('New Nest API Event Data Received...' + process.pid);
+			logger.info('New Nest API Event Data Received... | PID: ' + process.pid);
 			if (data && lastEventData != data) {
 				lastEventDt = getDtNow();
 				lastEventData = data;
 				eventCount += 1;
-				logger.info("Sent Nest Event " + eventCount + " Data to NST Manager Client (ST)");
+				logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount);
 				sendDataToST(data);
 			}
-		} catch (eerr) {
+		} catch (ex) {
+			logger.debug('evtSource (catch)...', e, 'readyState: ' + e.readyState);
 		}
 	});
 
-	source.addEventListener('open', function(e) {
+	evtSource.addEventListener('open', function(e) {
 		logger.info('Nest Connection Opened!');
 		isStreaming = true;
 	});
 
-	source.addEventListener('auth_revoked', function(e) {
+	evtSource.addEventListener('closed', function(e) {
+		logger.info('Nest Connection Closed!');
+		isStreaming = false;
+	});
+
+	evtSource.addEventListener('auth_revoked', function(e) {
 		logger.info('Stream Authentication token was revoked.');
-		if(source) { source.close(); logger.info('Streaming Connection has been Closed'); }
+		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("Authrevoked");
 	});
 
-	//source.addEventListener('error', function(e) {
-	source.onerror = function(e) {
+	evtSource.onerror = function(e) {
 		if (e.readyState == EventSource.CLOSED) {
-			console.log('Error listener: Stream Connection was closed! ', e);
+			logger.info('Nest API Event Stream Connection was closed! ', e);
 		} else {
-			console.log('A Stream unknown error occurred: ', e);
-			if(source) { source.close(); console.log('Streaming Connection has been Closed'); }
+			//console.log('A Stream Error occurred: ', e);
+			if(evtSource) {
+				evtSource.close();
+				console.log(getPrettyDt() + ' - Warn: Streaming Connection has been Closed');
+				var nothing = gracefulStop;
+				//appServerInit();
+			}
 		}
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("StreamError");
 	};
-	//}, false);
 }
 
 function sendDataToST(data) {
@@ -353,25 +361,24 @@ var hostAddr = getIPAddress();
 var port = process.env.PORT || 3000;
 app.set('port', port);
 
-var server = http.createServer(app);
-server.listen(port);
-logger.info('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') ' + process.pid);
-logger.info('Waiting for NST Manager to send this service the signal to initialize the Nest Event Stream...');
+var appServer = http.createServer(app);
+appServer.listen(port);
+logger.info('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') | ProcessId: ' + process.pid);
+logger.info('Waiting for NST Manager to send the signal to initialize the Nest Event Stream...');
 
 process.stdin.resume(); //so the program will not close instantly
 
 function exitHandler(options, err) {
 	isStreaming = false;
-	console.log('exitHandler: ' + process.pid, options, err);
+	//logger.info('exitHandler: (PID: ' + process.pid + ')', options, err);
 	if (options.cleanup) {
-		console.log('exitHandler: ', 'ClosedByUserConsole');
+		logger.info('exitHandler: ', 'ClosedByUserConsole');
 		sendStatusToST('ClosedByUserConsole');
 	} else if (err) {
-		console.log('exitHandler error', err);
+		logger.error('exitHandler error', err);
 		sendStatusToST('ClosedByError');
-		if (options.exit) process.exit(1);
-	}
-	if (options.exit) process.exit(0);
+	} else { process.exit(); }
+	if (options.exit) process.exit();
 }
 
 var gracefulStop = function() {
@@ -380,20 +387,16 @@ var gracefulStop = function() {
 	isStreaming = false;
 	sendStatusToST('ClosedByUserConsole');
 	logger.debug('Nest Streaming Connection has been Closed');
-	if(source) {
-		source.close(
-			function () {
-				process.exit(131);
-			}
-		);
-	}
-	setTimeout(
-		function() {
+	if(evtSource) { evtSource.close(); }
+	appServer.close(function() {
+	 	logger.info('Closed out appServer...');
+		process.exit();
+	});
+	setTimeout(function() {
 			sendStatusToST('ClosedByUserConsole');
-			console.error("Could not close connections in time, forcefully shutting down");
-			process.exit(0);
-		},
-	2*1000);
+			logger.error("Could not close connections in time, forcefully shutting down");
+			process.exit();
+	}, 2*1000);
 };
 
 //do something when app is closing
@@ -410,3 +413,15 @@ process.on('SIGTERM', gracefulStop);
 
 //catches uncaught exceptions
 //process.once('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
+
+function appServerReset() {
+	console.log('appServerReset...');
+	if(evtSource) { evtSource = null; }
+	appServer.close();
+	lastEventData = null;
+	isStreaming = false;
+	appServer = http.createServer(app);
+	appServer.listen(port);
+	console.log('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') | ProcessId: ' + process.pid);
+	console.info('Waiting for NST Manager to send the signal to initialize the Nest Event Stream...');
+}

@@ -1,12 +1,14 @@
 /*jshint esversion: 6 */
 /*
 	NST-Streaming
-	Version 0.2.0
+	Version 1.0.0
 	Author: Anthony Santilli
 	Copyright 2017 Anthony Santilli
 
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
  */
+
+const monVer = '1.0.0';
 
 const winston = require('winston');
 const fs = require('fs');
@@ -81,7 +83,7 @@ nodemon({
 
 nodemon.on('start', function() {
 	console.log('\x1Bc');
-	logger.info('NST Service Monitor has Started');
+	logger.info('NST Node Monitor Service (v' + monVer + ') is Running...');
 }).on('quit', function() {
 	console.log('\x1Bc');
 	logger.info('NST Streaming Service has Quit. Restarting...');
