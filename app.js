@@ -38,7 +38,7 @@ var serviceStartTime = Date.now(); //Returns time in millis
 var serviceStartDt = getDtNow();
 var lastEventDt = null;
 var lastEventData = null;
-var eventCount = 0
+var eventCount = 0;
 
 // This initializes the winston logging instance
 var logger = new (winston.Logger)({
@@ -155,7 +155,7 @@ function startStreaming() {
 				lastEventData = data;
 				eventCount += 1;
 				logger.info("Sent Nest Event " + eventCount + " Data to NST Manager Client (ST)");
-				sendDataToST(data)
+				sendDataToST(data);
 			}
 		} catch (eerr) {
 		}
@@ -379,8 +379,8 @@ var gracefulStop = function() {
 	lastEventData = null;
 	isStreaming = false;
 	sendStatusToST('ClosedByUserConsole');
-	logger.debug('Nest Streaming Connection has been Closed'); 
-	if(source) { 
+	logger.debug('Nest Streaming Connection has been Closed');
+	if(source) {
 		source.close(
 			function () {
 				process.exit(131);
@@ -391,10 +391,10 @@ var gracefulStop = function() {
 		function() {
 			sendStatusToST('ClosedByUserConsole');
 			console.error("Could not close connections in time, forcefully shutting down");
-			process.exit(0)
+			process.exit(0);
 		},
 	2*1000);
-}
+};
 
 //do something when app is closing
 process.on('exit', exitHandler.bind(null, { exit: true }));
