@@ -3,11 +3,14 @@ Description=NST Manager Node Streaming
 After=network.target remote-fs.target
 
 [Service]
+Type=simple
 Enviroment=NODE_ENV=production
 Enviroment=PORT=3000
 WorkingDirectory=/home/pi/nst-streaming-master
 ExecStart=/usr/bin/node server.js
 Restart=always
+RestartSec=10
+KillMode=process
 
 [Install]
 WantedBy=multi-user.target
