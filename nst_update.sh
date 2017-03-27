@@ -42,14 +42,15 @@ check_srvc_file() {
         if [ -f $old_srvc ];
         then
             echo "Existing NST Streaming Service File found"
-            if [[ ! $old_srvc -ef $new_srvc ]];
-            then
+#   Always restart if new zip file is given
+#            if [[ ! $old_srvc -ef $new_srvc ]];
+#            then
                 echo "New NST Streaming Service File found. Removing Old Service and Updating!!!"
                 remove_srvc
                 update_srvc
-            else
-                echo "Existing NST Streaming Service File is same as downloaded version"
-            fi
+#            else
+#                echo "Existing NST Streaming Service File is same as downloaded version"
+#            fi
         else
             echo "Existing NST Streaming Service is Missing..."
             update_srvc
