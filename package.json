@@ -6,7 +6,6 @@
         "start": "node app.js"
     },
     "dependencies": {
-        "nodemon": "^1.11.0",
         "eventsource": "^0.2.2",
         "express": "^4.15.2",
         "request": "^2.81.0",

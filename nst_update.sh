@@ -19,14 +19,16 @@ remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$zip_name"
 
 download_install_zip() {
     echo "Downloading $zip_name..."
-    wget -N $remote_file -P $local_dir
+    sudo wget -N $remote_file -P $local_dir
 
     if [ -f $local_file ];
     then
         stop_old_srvc
 
         cd $local_dir
-        unzip -o $local_file
+        sudo unzip -o $local_file
+
+        echo "Changing to $localapp_dir directory..."
         cd $localapp_dir
         npm install --no-optional
 
@@ -49,14 +51,8 @@ stop_old_srvc() {
     if [ -f $old_srvcinstall ];
     then
         echo "Existing NST Streaming Service File found"
-#   Always restart if new zip file is given
-#        if [[ ! $old_srvcinstall -ef $new_srvcfile ]];
-#        then
-            echo "Removing Old Service"
-            remove_srvc
-#        else
-#            echo "Existing NST Streaming Service File is same as downloaded version"
-#        fi
+        echo "Removing Old Service"
+        remove_srvc
     else
         echo "Existing NST Streaming Service not present..."
     fi
@@ -87,31 +83,35 @@ update_srvc() {
     fi
 }
 
-
-echo "$0  $1"
-if [ "$1" = "-f" ];
-then
-    echo "Removing $local_file ..."
-    rm -rf $local_file
-fi
-
-if [ -f $local_file ];
-then
-    echo "Checking for Newer file on remote server..."
-    modified=$(curl --silent --head $remote_file |
-               awk -F: '/^Last-Modified/ { print $2 }')
-    remote_ctime=$(date --date="$modified" +%s)
-    local_ctime=$(stat -c %z "$local_file")
-    local_ctime=$(date --date="$local_ctime" +%s)
-    echo "local file time: $local_ctime"
-    echo "remote file time: $remote_ctime"
-    if [ $local_ctime -lt $remote_ctime ];
+start_process() {
+    echo "Executing Script $0 $1"
+    if [ "$1" = "-f" ];
     then
-        echo "Updating..."
-    else
-        echo "Your version is the current...Skipping..."
-        exit
+        echo "Removing $local_file ..."
+        sudo rm -rf $local_file
     fi
-fi
 
-download_install_zip
+    if [ -f $local_file ];
+    then
+        echo "Checking for Newer file on remote server..."
+        modified=$(curl --silent --head $remote_file |
+                   awk -F: '/^Last-Modified/ { print $2 }')
+        remote_ctime=$(date --date="$modified" +%s)
+        local_ctime=$(stat -c %z "$local_file")
+        local_ctime=$(date --date="$local_ctime" +%s)
+        echo "local file time: $local_ctime"
+        echo "remote file time: $remote_ctime"
+        if [ $local_ctime -lt $remote_ctime ];
+        then
+            echo "Updating..."
+        else
+            echo "Your version is the current...Skipping..."
+            exit
+        fi
+    fi
+
+    download_install_zip
+}
+
+# This starts the whole process
+start_process
