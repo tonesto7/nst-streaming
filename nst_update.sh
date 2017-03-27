@@ -83,35 +83,45 @@ update_srvc() {
     fi
 }
 
-start_process() {
-    echo "Executing Script $0 $1"
-    if [ "$1" = "-f" ];
-    then
-        echo "Removing $local_file ..."
-        sudo rm -rf $local_file
-    fi
-
-    if [ -f $local_file ];
-    then
-        echo "Checking for Newer file on remote server..."
-        modified=$(curl --silent --head $remote_file |
-                   awk -F: '/^Last-Modified/ { print $2 }')
-        remote_ctime=$(date --date="$modified" +%s)
-        local_ctime=$(stat -c %z "$local_file")
-        local_ctime=$(date --date="$local_ctime" +%s)
-        echo "local file time: $local_ctime"
-        echo "remote file time: $remote_ctime"
-        if [ $local_ctime -lt $remote_ctime ];
-        then
-            echo "Updating..."
-        else
-            echo "Your version is the current...Skipping..."
-            exit
-        fi
-    fi
-
-    download_install_zip
+cleanup() {
+    echo "Removing NST-Streaming files"
+    sudo rm -rf $localapp_dir
+    sudo rm -rf $local_dir/$zip_name
 }
 
-# This starts the whole process
-start_process
+uninstall() {
+    remove_srvc
+    cleanup
+}
+
+echo "Executing Script $0 $1"
+if [ "$1" = "-c" ];
+then
+    uninstall
+    exit
+elif [ "$1" = "-f" ];
+then
+    echo "Removing $local_file ..."
+    sudo rm -rf $local_file
+fi
+
+if [ -f $local_file ];
+then
+    echo "Checking for Newer file on remote server..."
+    modified=$(curl --silent --head $remote_file |
+               awk -F: '/^Last-Modified/ { print $2 }')
+    remote_ctime=$(date --date="$modified" +%s)
+    local_ctime=$(stat -c %z "$local_file")
+    local_ctime=$(date --date="$local_ctime" +%s)
+    echo "local file time: $local_ctime"
+    echo "remote file time: $remote_ctime"
+    if [ $local_ctime -lt $remote_ctime ];
+    then
+        echo "Updating..."
+    else
+        echo "Your version is the current...Skipping..."
+        exit
+    fi
+fi
+
+download_install_zip

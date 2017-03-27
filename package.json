@@ -1,9 +1,17 @@
 {
     "name": "nest-samples",
     "version": "1.0.0",
+    "description": "Rest Streaming Service for NST-Manager (ST)",
     "private": true,
     "scripts": {
         "start": "node app.js"
+    },
+    "homepage": "http://thingsthataresmart.wiki/index.php?title=NST_Manager",
+    "author": {
+        "name": "Anthony Santilli"
+    },
+    "bugs": {
+        "url": "https://github.com/tonesto7/nst-manager/issues"
     },
     "dependencies": {
         "eventsource": "^0.2.2",
@@ -18,5 +26,10 @@
     },
     "optionalDependencies": {
         "fsevents": "*"
-    }
+    },
+    "contributors": [
+        {
+            "name": "Eric S."
+        }
+    ]
 }
