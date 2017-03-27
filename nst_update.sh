@@ -28,7 +28,7 @@ check_for_update() {
 download_zip() {
     echo "Downloading nst-streaming-master.zip..."
     sudo wget -N https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/nst-streaming-master.zip -P /home/pi
-    cd /home/p
+    cd /home/pi
     sudo unzip -o nst-streaming-master.zip
     cd /home/pi/nst-streaming-master
     sudo npm install
