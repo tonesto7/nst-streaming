@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.3.0';
+var appVer = '0.4.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -179,22 +179,22 @@ function startStreaming() {
 		sendStatusToST("Authrevoked");
 	});
 
+	//evtSource.addEventListener('error', function(e) {
 	evtSource.onerror = function(e) {
 		if (e.readyState == EventSource.CLOSED) {
-			logger.info('Nest API Event Stream Connection was closed! ', e);
+			logger.info('Error listener: Nest API Event Stream Connection was closed! ', e);
 		} else {
-			//console.log('A Stream Error occurred: ', e);
+			logger.info('Error listener: A Stream unknown error occurred: ', e);
 			if(evtSource) {
 				evtSource.close();
-				console.log(getPrettyDt() + ' - Warn: Streaming Connection has been Closed');
-				var nothing = gracefulStop;
-				//appServerInit();
+				//console.log(getPrettyDt() + ' - Warn: Streaming Connection has been Closed');
 			}
 		}
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("StreamError");
 	};
+	//}, false);
 }
 
 function sendDataToST(data) {
@@ -220,9 +220,9 @@ function sendDataToST(data) {
 }
 
 function sendStatusToST(reason) {
-	var request2 = require('request');
 	//logger.debug('sendStatusToST: url ' + callbackUrl + ' and token ' + stToken + ' found, reason: ' + reason);
 	if (callbackUrl && stToken) {
+		var request2 = require('request');
 		var options = {
 			uri: callbackUrl + '/streamStatus?access_token=' + stToken,
 			method: 'POST',
@@ -370,15 +370,16 @@ process.stdin.resume(); //so the program will not close instantly
 
 function exitHandler(options, err) {
 	isStreaming = false;
-	//logger.info('exitHandler: (PID: ' + process.pid + ')', options, err);
+	console.log('exitHandler: (PID: ' + process.pid + ')', options, err);
 	if (options.cleanup) {
 		logger.info('exitHandler: ', 'ClosedByUserConsole');
 		sendStatusToST('ClosedByUserConsole');
 	} else if (err) {
-		logger.error('exitHandler error', err);
+		logger.info('exitHandler error', err);
 		sendStatusToST('ClosedByError');
-	} else { process.exit(); }
-	if (options.exit) process.exit();
+		if (options.exit) process.exit(1);
+	}
+	process.exit();
 }
 
 var gracefulStop = function() {
@@ -386,16 +387,22 @@ var gracefulStop = function() {
 	lastEventData = null;
 	isStreaming = false;
 	sendStatusToST('ClosedByUserConsole');
-	logger.debug('Nest Streaming Connection has been Closed');
-	if(evtSource) { evtSource.close(); }
-	appServer.close(function() {
-	 	logger.info('Closed out appServer...');
-		process.exit();
-	});
+	if(evtSource) {
+		evtSource.close(function () {
+			console.log('Nest Streaming Connection has been Closed');
+/*
+			appServer.close(function() {
+				console.log('Closed out appServer... | PID: ' + process.pid, 'gracefulStop');
+				process.exit();
+			});
+*/
+		});
+	}
+
+	console.log('graceful setting timeout' + process.pid);
 	setTimeout(function() {
-			sendStatusToST('ClosedByUserConsole');
-			logger.error("Could not close connections in time, forcefully shutting down");
-			process.exit();
+			console.error("Could not close connections in time, forcefully shutting down");
+			process.exit(1);
 	}, 2*1000);
 };
 
@@ -413,15 +420,3 @@ process.on('SIGTERM', gracefulStop);
 
 //catches uncaught exceptions
 //process.once('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
-
-function appServerReset() {
-	console.log('appServerReset...');
-	if(evtSource) { evtSource = null; }
-	appServer.close();
-	lastEventData = null;
-	isStreaming = false;
-	appServer = http.createServer(app);
-	appServer.listen(port);
-	console.log('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') | ProcessId: ' + process.pid);
-	console.info('Waiting for NST Manager to send the signal to initialize the Nest Event Stream...');
-}
