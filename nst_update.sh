@@ -60,6 +60,7 @@ check_srvc_file() {
 
 remove_srvc() {
     echo "Disabling and Removing existing NST Streaming Service File"
+    sudo systemctl stop $srvc_name
     sudo systemctl disable $srvc_name
     sudo rm $old_srvc
 }
