@@ -7,7 +7,7 @@ Type=simple
 Enviroment=NODE_ENV=production
 Enviroment=PORT=3000
 WorkingDirectory=/home/pi/nst-streaming-master
-ExecStart=/usr/bin/node server.js
+ExecStart=/usr/bin/node app.js
 Restart=always
 RestartSec=10
 KillMode=process
