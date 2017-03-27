@@ -19,14 +19,14 @@ remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$zip_name"
 
 download_install_zip() {
     echo "Downloading $zip_name..."
-    sudo wget -N $remote_file -P $local_dir
+    wget -N $remote_file -P $local_dir
 
     if [ -f $local_file ];
     then
         stop_old_srvc
 
         cd $local_dir
-        sudo unzip -o $local_file
+        unzip -o $local_file
 
         echo "Changing to $localapp_dir directory..."
         cd $localapp_dir
