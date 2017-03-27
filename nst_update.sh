@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 srvc_name="nst-streaming.service"
 old_srvc="/etc/systemd/system/nst-streaming.service"
