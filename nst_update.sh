@@ -38,7 +38,7 @@ download_install_zip() {
             if [ $THEUSER != "pi" ];
             then
                 echo "Updating Service file with current user $THEUSER"
-                sudo sed -ia 's|/home/pi|/home/$THEUSER|g' $srvc_name
+                sed -ia 's|/home/pi|/home/$THEUSER|g' $srvc_name
             fi
             update_srvc
         else
@@ -90,8 +90,8 @@ update_srvc() {
 
 cleanup() {
     echo "Removing NST-Streaming files"
-    sudo rm -rf $localapp_dir
-    sudo rm -rf $local_dir/$zip_name
+    rm -rf $localapp_dir
+    rm -rf $local_dir/$zip_name
 }
 
 uninstall() {
@@ -107,7 +107,7 @@ then
 elif [ "$1" = "-f" ];
 then
     echo "Removing $local_file ..."
-    sudo rm -rf $local_file
+    rm -rf $local_file
 elif [ "$1" = "-help" ];
 then
     echo " "
