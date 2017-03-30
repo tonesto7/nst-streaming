@@ -1,6 +1,6 @@
 #!/bin/bash
 
-THEUSER=pi
+THEUSER="$USER"
 local_dir="/home/$THEUSER"
 localapp_dir="$local_dir/nst-streaming-master"
 
