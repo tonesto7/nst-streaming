@@ -35,6 +35,11 @@ download_install_zip() {
         if [ -f $new_srvcfile ];
         then
             echo "New NST Streaming Service File found. Installing!!!"
+            if [ $THEUSER != "pi" ];
+            then
+                echo "Updating Service file with current user $THEUSER"
+                sudo sed -ia 's|/home/pi|/home/$THEUSER|g' $srvc_name
+            fi
             update_srvc
         else
             echo "New NST Service file not present..."
@@ -95,7 +100,7 @@ uninstall() {
 }
 
 echo "Executing Script $0 $1"
-if [ "$1" = "-c" ];
+if [ "$1" = "-r" ];
 then
     uninstall
     exit
@@ -103,6 +108,17 @@ elif [ "$1" = "-f" ];
 then
     echo "Removing $local_file ..."
     sudo rm -rf $local_file
+elif [ "$1" = "-help" ];
+then
+    echo " "
+    echo "nst-update Help..."
+    echo "These are the available arguments:"
+    echo "No Arg | This runs the full update process"
+    echo "-f  | Forcefully Update Files/Service"
+    echo "-r  | Completely Remove Files/Service from System"
+    echo "-sp | Skip Pre-req install and just update existing files"
+    echo " "
+    exit
 fi
 
 if [ -f $local_file ];
