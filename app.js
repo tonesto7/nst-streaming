@@ -274,7 +274,7 @@ function ssdpSrvInit() {
 		usn: usnVal,
 		ipv4: true,
 		ipv6: false,
-		interval: 30000,
+		interval: 15000,
 		location: {
 			udp4: 'http://' + getIPAddress() + ':' + port + '/deviceDesc.xml'
 		},
