@@ -274,7 +274,7 @@ function ssdpSrvInit() {
 		usn: usnVal,
 		ipv4: true,
 		ipv6: false,
-		interval: 10000,
+		interval: 30000,
 		location: {
 			udp4: 'http://' + getIPAddress() + ':' + port + '/deviceDesc.xml'
 		},
@@ -289,6 +289,7 @@ function ssdpSrvInit() {
 				friendlyName: 'NST-Streaming Service',
 				serviceIp: getIPAddress(),
 				servicePort: port,
+				hostName: getHostName(),
 				manufacturer: '',
 				manufacturerURL: '',
 				modelDescription: '',
@@ -346,6 +347,11 @@ function getServiceUptime() {
 	var diff = (now - serviceStartTime) / 1000;
 	//logger.debug("diff: "+ diff);
 	return getHostUptimeStr(diff);
+}
+
+function getHostName() {
+	var hostName = os.hostname();
+	return hostName;
 }
 
 function getHostInfo() {
@@ -475,7 +481,7 @@ var gracefulStop = function() {
 		});
 	}
 
-	console.log('graceful setting timeout' + process.pid);
+	console.log('graceful setting timeout for PID: ' + process.pid);
 	setTimeout(function() {
 			console.error("Could not close connections in time, forcefully shutting down");
 			process.exit(1);
