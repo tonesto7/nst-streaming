@@ -252,7 +252,8 @@ function sendStatusToST(reason) {
 
 function ssdpSrvInit() {
 	var ssdp = require('@achingbrain/ssdp');
-	var usnVal = 'urn:schemas-upnp-org:service:ContentDirectory:1';
+	var usnVal = 'urn:schemas-upnp-org:service:Nst-Streaming:1';
+	const uuidV4 = require('uuid/v4');
 	var ssdpServer = ssdp({
 		signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
 		sockets: [{
@@ -275,7 +276,7 @@ function ssdpSrvInit() {
 		ipv6: false,
 		interval: 10000,
 		location: {
-			udp4: 'http://' + getIPAddress() + ':' + port + '/ssdp/details.xml'
+			udp4: 'http://' + getIPAddress() + ':' + port + '/ssdp/description.xml'
 		},
 		details: {
 			specVersion: {
@@ -284,7 +285,7 @@ function ssdpSrvInit() {
 			},
 			URLBase: 'http://' + getIPAddress() + ':' + port,
 			device: {
-				deviceType: 'urn:schemas-upnp-org:service:Basic:1',
+				deviceType: usnVal,
 				friendlyName: 'NST Streaming Node Service',
 				manufacturer: '',
 				manufacturerURL: '',
@@ -294,13 +295,13 @@ function ssdpSrvInit() {
 				modelURL: '',
 				serialNumber: '',
 				version: appVer,
-				UDN: 'NST Streaming Service',
+				UDN: 'uuid:' + uuidV4(),
 				presentationURL: ''
 			}
 		}
 	})
 	.then(advert => {
-		app.get('/ssdp/details.xml', (request, response) => {
+		app.get('/ssdp/description.xml', (request, response) => {
 			advert.service.details()
 			.then(details => {
 				response.set('Content-Type', 'text/xml');
@@ -313,7 +314,16 @@ function ssdpSrvInit() {
 		});
 	});
 	logger.info('Activate SSDP Broadcast for SmartThings hub to detect...');
+
 	//ssdpServer.on('error', console.error);
+	// ssdpServer.on('transport:outgoing-message', (socket, message, remote) => {
+	//   console.info('-> Outgoing to %s:%s via %s', remote.address, remote.port, socket.type);
+	//   console.info(message.toString('utf8'));
+    // });
+	// ssdpServer.on('transport:incoming-message', (message, remote) => {
+	//   console.info('<- Incoming from %s:%s', remote.address, remote.port);
+	//   console.info(message.toString('utf8'));
+ //  	});
 }
 
 function getIPAddress() {
