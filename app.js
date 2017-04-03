@@ -257,16 +257,16 @@ function ssdpSrvInit() {
 	var ssdpServer = ssdp({
 		signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
 		sockets: [{
-		    type: 'udp4', // or 'udp6'
+		    type: 'udp4',
 		    broadcast: {
-		      address: '239.255.255.250', // or 'FF02::C'
-		      port: 1900 // SSDP broadcast port
-		    },
-		    bind: {
-		      address: '0.0.0.0', // or '0:0:0:0:0:0:0:0'
+		      address: '239.255.255.250',
 		      port: 1900
 		    },
-		    maxHops: 4 // how many network segments packets are allow to travel through (UDP TTL)
+		    bind: {
+		      address: '0.0.0.0',
+		      port: 1900
+		    },
+		    maxHops: 4
 		}]
 	});
 
@@ -276,7 +276,7 @@ function ssdpSrvInit() {
 		ipv6: false,
 		interval: 10000,
 		location: {
-			udp4: 'http://' + getIPAddress() + ':' + port + '/ssdp/description.xml'
+			udp4: 'http://' + getIPAddress() + ':' + port + '/deviceDesc.xml'
 		},
 		details: {
 			specVersion: {
@@ -303,7 +303,7 @@ function ssdpSrvInit() {
 		}
 	})
 	.then(advert => {
-		app.get('/ssdp/description.xml', (request, response) => {
+		app.get('/deviceDesc.xml', (request, response) => {
 			advert.service.details()
 			.then(details => {
 				response.set('Content-Type', 'text/xml');
