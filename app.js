@@ -252,7 +252,7 @@ function sendStatusToST(reason) {
 
 function ssdpSrvInit() {
 	var ssdp = require('@achingbrain/ssdp');
-	var usnVal = 'urn:schemas-upnp-org:service:Nst-Streaming:1';
+	var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
 	const uuidV4 = require('uuid/v4');
 	var ssdpServer = ssdp({
 		signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
