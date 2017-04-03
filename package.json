@@ -17,6 +17,7 @@
         "eventsource": "^0.2.2",
         "express": "^4.15.2",
         "request": "^2.81.0",
+        "@achingbrain/ssdp": "^2.1.2",
         "node-datetime": "^1.0.0",
         "os": "^0.1.1",
         "getos": "^2.8.4",

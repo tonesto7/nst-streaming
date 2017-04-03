@@ -16,7 +16,6 @@ old_srvcinstall="/etc/systemd/system/$old_name"
 
 remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$zip_name"
 
-
 download_install_zip() {
     echo "Downloading $zip_name..."
     wget -N $remote_file -P $local_dir
@@ -27,6 +26,7 @@ download_install_zip() {
 
         cd $local_dir
         unzip -o $local_file
+        set_owner
 
         echo "Changing to $localapp_dir directory..."
         cd $localapp_dir
@@ -88,6 +88,11 @@ update_srvc() {
     fi
 }
 
+set_owner() {
+    echo "Making $THEUSER owner on $local_dir..."
+    sudo chown -R $THEUSER:$THEUSER $local_dir
+}
+
 cleanup() {
     echo "Removing NST-Streaming files"
     rm -rf $localapp_dir
@@ -100,6 +105,12 @@ uninstall() {
 }
 
 echo "Executing Script $0 $1"
+dir_owner="$(stat -c '%U' $local_dir)"
+if [ $THEUSER != $dir_owner ];
+then
+    set_owner
+fi
+
 if [ "$1" = "-r" ];
 then
     uninstall
@@ -111,7 +122,7 @@ then
 elif [ "$1" = "-help" ];
 then
     echo " "
-    echo "nst-update Help..."
+    echo "nst-update help..."
     echo "These are the available arguments:"
     echo "No Arg | This runs the full update process"
     echo "-f  | Forcefully Update Files/Service"

@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.4.0';
+var appVer = '0.5.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -15,6 +15,7 @@ const fs = require('fs');
 var http = require('http');
 var request = require('request');
 var express = require('express');
+
 var os = require('os');
 var EventSource = require('eventsource');
 var app = express();
@@ -42,28 +43,28 @@ var eventCount = 0;
 // This initializes the winston logging instance
 var logger = new (winston.Logger)({
 	levels: {
-	    trace: 0,
-	    input: 1,
-	    verbose: 2,
-	    prompt: 3,
-	    debug: 4,
-	    info: 5,
-	    data: 6,
-	    help: 7,
-	    warn: 8,
-	    error: 9
+		trace: 0,
+		input: 1,
+		verbose: 2,
+		prompt: 3,
+		debug: 4,
+		info: 5,
+		data: 6,
+		help: 7,
+		warn: 8,
+		error: 9
 	},
 	colors: {
-	    trace: 'magenta',
-	    input: 'grey',
-	    verbose: 'cyan',
-	    prompt: 'grey',
-	    debug: 'yellow',
-	    info: 'green',
-	    data: 'blue',
-	    help: 'cyan',
-	    warn: 'orange',
-	    error: 'red'
+		trace: 'magenta',
+		input: 'grey',
+		verbose: 'cyan',
+		prompt: 'grey',
+		debug: 'yellow',
+		info: 'green',
+		data: 'blue',
+		help: 'cyan',
+		warn: 'orange',
+		error: 'red'
 	},
 	transports: [
 		new (winston.transports.Console)({
@@ -249,6 +250,72 @@ function sendStatusToST(reason) {
 	}
 }
 
+function ssdpSrvInit() {
+	var ssdp = require('@achingbrain/ssdp');
+	var usnVal = 'urn:schemas-upnp-org:service:ContentDirectory:1';
+	var ssdpServer = ssdp({
+		signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
+		sockets: [{
+		    type: 'udp4', // or 'udp6'
+		    broadcast: {
+		      address: '239.255.255.250', // or 'FF02::C'
+		      port: 1900 // SSDP broadcast port
+		    },
+		    bind: {
+		      address: '0.0.0.0', // or '0:0:0:0:0:0:0:0'
+		      port: 1900
+		    },
+		    maxHops: 4 // how many network segments packets are allow to travel through (UDP TTL)
+		}]
+	});
+
+	ssdpServer.advertise({
+		usn: usnVal,
+		ipv4: true,
+		ipv6: false,
+		interval: 10000,
+		location: {
+			udp4: 'http://' + getIPAddress() + ':' + port + '/ssdp/details.xml'
+		},
+		details: {
+			specVersion: {
+				major: 1,
+				minor: 1
+			},
+			URLBase: 'http://' + getIPAddress() + ':' + port,
+			device: {
+				deviceType: 'urn:schemas-upnp-org:service:Basic:1',
+				friendlyName: 'NST Streaming Node Service',
+				manufacturer: '',
+				manufacturerURL: '',
+				modelDescription: '',
+				modelName: '',
+				modelNumber: '',
+				modelURL: '',
+				serialNumber: '',
+				version: appVer,
+				UDN: 'NST Streaming Service',
+				presentationURL: ''
+			}
+		}
+	})
+	.then(advert => {
+		app.get('/ssdp/details.xml', (request, response) => {
+			advert.service.details()
+			.then(details => {
+				response.set('Content-Type', 'text/xml');
+				response.send(details);
+			})
+			.catch(error => {
+				response.set('Content-Type', 'text/xml');
+				response.send(error);
+			});
+		});
+	});
+	logger.info('Activate SSDP Broadcast for SmartThings hub to detect...');
+	//ssdpServer.on('error', console.error);
+}
+
 function getIPAddress() {
 	var interfaces = os.networkInterfaces();
 	for (var devName in interfaces) {
@@ -283,15 +350,15 @@ function getHostInfo() {
 		osPlatform = getLinuxPlatform();
 	}
 	return {
-			'hostname': hostName,
-			'osType': osType,
-			'osArch': osArch,
-			'osRelease': osRelease,
-			'osPlatform': osPlatform,
-			'osUptime': getHostUptimeStr(osUptime),
-			'osUptimeStr': secondsToText(osUptime),
-			'memTotal': formatBytes(memTotal),
-			'memFree': formatBytes(memFree)
+		'hostname': hostName,
+		'osType': osType,
+		'osArch': osArch,
+		'osRelease': osRelease,
+		'osPlatform': osPlatform,
+		'osUptime': getHostUptimeStr(osUptime),
+		'osUptimeStr': secondsToText(osUptime),
+		'memTotal': formatBytes(memTotal),
+		'memFree': formatBytes(memFree)
 	};
 }
 
@@ -333,20 +400,20 @@ function getHostUptimeStr(time) {
 }
 
 function secondsToText(seconds) {
-    var levels = [
-        [Math.floor(seconds / 31536000), 'years'],
-        [Math.floor((seconds % 31536000) / 86400), 'days'],
-        [Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
-        [Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
-        [(((seconds % 31536000) % 86400) % 3600) % 60, 'seconds'],
-    ];
-    var returntext = '';
+	var levels = [
+		[Math.floor(seconds / 31536000), 'years'],
+		[Math.floor((seconds % 31536000) / 86400), 'days'],
+		[Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
+		[Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
+		[(((seconds % 31536000) % 86400) % 3600) % 60, 'seconds'],
+	];
+	var returntext = '';
 
-    for (var i = 0, max = levels.length; i < max; i++) {
-        if ( levels[i][0] === 0 ) continue;
-        returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length-1): levels[i][1]);
-    }
-    return returntext.trim();
+	for (var i = 0, max = levels.length; i < max; i++) {
+		if ( levels[i][0] === 0 ) continue;
+		returntext += ' ' + levels[i][0] + ' ' + (levels[i][0] === 1 ? levels[i][1].substr(0, levels[i][1].length-1): levels[i][1]);
+	}
+	return returntext.trim();
 }
 
 function formatBytes(bytes) {
@@ -362,9 +429,12 @@ var port = process.env.PORT || 3000;
 app.set('port', port);
 
 var appServer = http.createServer(app);
-appServer.listen(port);
-logger.info('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') | ProcessId: ' + process.pid);
-logger.info('Waiting for NST Manager to send the signal to initialize the Nest Event Stream...');
+appServer.listen(port, function() {
+	logger.info('NST Stream Service (v' + appVer + ') is Running at (IP: ' + hostAddr + ' | Port: ' + port + ') | ProcessId: ' + process.pid);
+	//initializes ssdp broadcasting
+	ssdpSrvInit();
+	logger.info('Waiting for NST Manager to send the signal to initialize the Nest Event Stream...');
+});
 
 process.stdin.resume(); //so the program will not close instantly
 
@@ -390,12 +460,6 @@ var gracefulStop = function() {
 	if(evtSource) {
 		evtSource.close(function () {
 			console.log('Nest Streaming Connection has been Closed');
-/*
-			appServer.close(function() {
-				console.log('Closed out appServer... | PID: ' + process.pid, 'gracefulStop');
-				process.exit();
-			});
-*/
 		});
 	}
 
