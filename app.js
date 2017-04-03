@@ -281,12 +281,14 @@ function ssdpSrvInit() {
 		details: {
 			specVersion: {
 				major: 1,
-				minor: 1
+				minor: 0
 			},
 			URLBase: 'http://' + getIPAddress() + ':' + port,
 			device: {
 				deviceType: usnVal,
-				friendlyName: 'NST Streaming Node Service',
+				friendlyName: 'NST-Streaming Service',
+				serviceIp: getIPAddress(),
+				servicePort: port,
 				manufacturer: '',
 				manufacturerURL: '',
 				modelDescription: '',
