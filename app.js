@@ -300,7 +300,8 @@ function ssdpSrvInit() {
 				serialNumber: '',
 				version: appVer,
 				UDN: 'uuid:' + uuidV4(),
-				presentationURL: ''
+				presentationURL: '',
+				hostInfo: getHostInfo()
 			}
 		}
 	})
@@ -408,6 +409,8 @@ function getPrettyDt() {
 function getHostUptimeStr(time) {
 	var years = Math.floor(time / 31536000);
 	time -= years * 31536000;
+	var months = Math.floor(time / 31536000);
+	time -= months * 2592000;
 	var days = Math.floor(time / 86400);
 	time -= days * 86400;
 	var hours = Math.floor(time / 3600);
@@ -415,12 +418,21 @@ function getHostUptimeStr(time) {
 	var minutes = Math.floor(time / 60);
 	time -= minutes * 60;
 	var seconds = parseInt(time % 60, 10);
-	return (years + 'y, ' + days + 'd, ' + hours + 'h:' + (minutes < 10 ? '0' + minutes : minutes) + 'm:' + (seconds < 10 ? '0' + seconds : seconds) +'s');
+	return {
+		'y': years,
+		'mn': months,
+		'd': days,
+		'h': hours,
+		'm': minutes,
+		's': seconds
+	};
+	//return (years + 'y, ' + days + 'd, ' + hours + 'h:' + (minutes < 10 ? '0' + minutes : minutes) + 'm:' + (seconds < 10 ? '0' + seconds : seconds) +'s');
 }
 
 function secondsToText(seconds) {
 	var levels = [
 		[Math.floor(seconds / 31536000), 'years'],
+		[Math.floor((seconds % 31536000) / 2592000), 'months'],
 		[Math.floor((seconds % 31536000) / 86400), 'days'],
 		[Math.floor(((seconds % 31536000) % 86400) / 3600), 'hours'],
 		[Math.floor((((seconds % 31536000) % 86400) % 3600) / 60), 'minutes'],
