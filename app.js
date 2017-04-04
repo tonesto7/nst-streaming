@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.5.0';
+var appVer = '0.6.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -113,6 +113,7 @@ app.post('/status', function(req, res) {
 				'streaming': isStreaming,
 				'version': appVer,
 				'startupDt': getServiceUptime(),
+				'sessionEvts': eventCount,
 				'lastEvtDt': lastEventDt,
 				'hostInfo': getHostInfo()
 			}
