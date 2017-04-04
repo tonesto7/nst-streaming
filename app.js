@@ -232,6 +232,7 @@ function sendStatusToST(reason) {
 				'version': appVer,
 				'startupDt': getServiceUptime(),
 				'lastEvtDt': lastEventDt,
+				'sessionEvts': eventCount,
 				'hostInfo': getHostInfo(),
 				'exitReason': reason
 			}
