@@ -371,6 +371,8 @@ function getHostInfo() {
 	}
 	return {
 		'hostname': hostName,
+		'ip': getIPAddress(),
+		'port': port,
 		'osType': osType,
 		'osArch': osArch,
 		'osRelease': osRelease,
