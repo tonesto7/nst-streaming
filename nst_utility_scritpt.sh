@@ -34,7 +34,7 @@ showHelp() {
     echo "|                            Help Page                                   |"
     echo "=========================================================================="
     echo ""
-    echo "  Available Switch Arguments: "
+    echo "  Available Switch Arguments: " 
     echo "--------------------------------------------------------------------------"
     echo "|  Default [No Arg]        | Runs the Full Installation Process          |"
     echo "|                          |                                             |"
@@ -51,7 +51,7 @@ showHelp() {
     exit
 }
 
-#   Checks to see if sudo should be used by default.
+#   Checks to see if sudo should be used by default.  
 #   It allows an argument of "true"/"false" to use sudo if it's allowed/supported on the machine
 check_sudo() {
     _useSudo="false"
@@ -69,7 +69,7 @@ checkOwnerOk() {
     dir_owner="$(stat -c '%U' $_userDir)"
     if [ $_currentUser != $dir_owner ]; then
         return 1
-    else
+    else 
         return 0
     fi
 }
@@ -140,7 +140,7 @@ getLatestPackage() {
     fi
 }
 
-#   This Downloads the latest NST Streaming package from the distribution source and extracts it
+#   This Downloads the latest NST Streaming package from the distribution source and extracts it 
 download_package() {
     if [ checkOwnerOk != "true" ]; then
         set_owner
@@ -270,7 +270,6 @@ showPkgDlOk() {
     echo "               journalctl -f -u nst-streaming                 "
     echo "=============================================================="
     echo ""
-    exit
 }
 
 showCleanupOk() {
@@ -280,7 +279,6 @@ showCleanupOk() {
     echo "          All NST-Streaming Data and Files Removed            "
     echo "=============================================================="
     echo ""
-    exit
 }
 
 # echo "Executing Script $0 $1"
@@ -300,11 +298,13 @@ else
         remove_all
         getLatestPackage
         showPkgDlOk
+        sudoPreCmd "journalctl -f -u nst-streaming"
 
     elif [ "$1" = "-u" ] || [ "$1" = "-update" ]; then
         showTitle
         getLatestPackage
         showPkgDlOk
+        sudoPreCmd "journalctl -f -u nst-streaming" 
 
     elif [ "$1" = "-help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ] || [ "$1" != "-u" ] || [ "$1" != "-update" ] || [ "$1" != "-f" ] || [ "$1" != "-force" ] || [ "$1" != "-r" ] || [ "$1" != "-remove" ] || [ "$1" != "-clean" ]; then
         showHelp
