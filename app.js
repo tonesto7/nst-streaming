@@ -46,7 +46,7 @@ const uuidV4 = require('uuid/v4');
 var ssdpServer;
 var ssdpOn = false;
 
-var spokeWithST = true
+var spokeWithST = true;
 
 // This initializes the winston logging instance
 var logger = new (winston.Logger)({
@@ -226,7 +226,7 @@ function sendDataToST(data) {
 		};
 		request(options, function(error, response, body) {
 			if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
-				spokeWithST = true
+				spokeWithST = true;
 				//logger.debug("sendDataToST body.id... ", body.id);
 				isStreaming = true;
 				stopSsdp();
@@ -259,7 +259,7 @@ function sendStatusToST(reason) {
 		};
 		request2(options, function(error, response, body) {
 			if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
-				spokeWithST = true
+				spokeWithST = true;
 				//logger.debug("sendStatusToST...body ", body.id);
 				return true;
 			} else {
@@ -291,9 +291,9 @@ function ssdpSrvInit() {
 			    maxHops: 4
 			}]
 		});
-	
+
 		ssdpOn = true;
-	
+
 		ssdpServer.advertise({
 			usn: usnVal,
 			ipv4: true,
@@ -332,7 +332,7 @@ function ssdpSrvInit() {
 			app.get('/deviceDesc.xml', (request, response) => {
 				advert.service.details()
 				.then(details => {
-					spokeWithST = true
+					spokeWithST = true;
 					response.set('Content-Type', 'text/xml');
 					response.send(details);
 				})

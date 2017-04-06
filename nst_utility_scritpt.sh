@@ -1,240 +1,312 @@
 #!/bin/bash
 
-_user="$USER"
-use_sudo=false
-local_dir="/home/$_user"
-localapp_dir="$local_dir/nst-streaming-master"
+# ---------------------------------GLOBAL VARIABLES--------------------------------------
+_scriptVer="0.1"
+_useSudo="false"
 
-zip_name="nst-streaming-master.zip"
-local_file="$local_dir/$zip_name"
+_currentUser="$USER"
 
-srvc_name="nst-streaming.service"
-new_srvcinstall="/etc/systemd/system/$srvc_name"
-new_srvcfile="$localapp_dir/$srvc_name"
+_userDir="/home/$_currentUser"
+working_app_dir="$_userDir/nst-streaming-master"
 
-old_name="nst-streaming.service"
-old_srvcinstall="/etc/systemd/system/$old_name"
+src_zip_name="nst-streaming-master.zip"
+app_zip_file="$_userDir/$src_zip_name"
 
-remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$zip_name"
+cur_srvc_name="nst-streaming.service"
+new_srvc_src_path="$working_app_dir/$cur_srvc_name"
+new_srvc_dest_path="/etc/systemd/system/$cur_srvc_name"
 
-check_sudo() {
-    if [ -x "$(command -v sudo)" ] || [ $_user != "root" ];
-    then
-        $use_sudo = "true"
-    fi
-    echo "Using Sudo: ($use_sudo)"
+old_srvc_name="nst-streaming.service"
+old_srvc_path="/etc/systemd/system/$old_srvc_name"
+
+remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$src_zip_name"
+# ----------------------------------------------------------------------------------------
+
+showTitle() {
+    echo "=========================================================================="
+    echo "|                    NST Utility Script (v$_scriptVer)                           |"
+    echo "=========================================================================="
 }
 
-download_install_zip() {
-    echo "----------------------------------------------------------------------"
-    echo "Downloading Latest NST-Streaming Zip File ($zip_name)"
-    echo "----------------------------------------------------------------------"
-    if [ $use_sudo == "true" ]; then
-        sudo wget -N $remote_file -P $local_dir
-    else
-        wget -N $remote_file -P $local_dir
-    fi
+showHelp() {
+    echo "=========================================================================="
+    echo "|                    NST Utility Script (v$_scriptVer)                           |"
+    echo "|                            Help Page                                   |"
+    echo "=========================================================================="
+    echo ""
+    echo "  Available Switch Arguments: "
+    echo "--------------------------------------------------------------------------"
+    echo "|  Default [No Arg]        | Runs the Full Installation Process          |"
+    echo "|                          |                                             |"
+    echo "|  [-f | -force]           | Forcefully Update Files/Service             |"
+    echo "|                          |                                             |"
+    echo "|  [-r | -remove | -clean] | Removes the Service and All NST files       |"
+    echo "|                          | from the System                             |"
+    echo "|                          |                                             |"
+    echo "|  [-u | -update]          | Skip's Pre-req Install and downloads the    |"
+    echo "|                          | last package file and updates the existing  |"
+    echo "|                          | files and reinstalls the service            |"
+    echo "|                          |                                             |"
+    echo "--------------------------------------------------------------------------"
+    exit
+}
 
-    if [ -f $local_file ];
-    then
-        stop_old_srvc
-
-        cd $local_dir
-        if [ $use_sudo == "true" ]; then
-            sudo unzip -o $local_file
-        else
-            unzip -o $local_file
-        fi
-        set_owner
-
-        echo "Changing to [$localapp_dir] directory..."
-        cd $localapp_dir
-        npm install --no-optional
-
-        if [ -f $new_srvcfile ];
-        then
-            echo "New NST Streaming Service File found. Installing!!!"
-            if [ $_user != "pi" ];
-            then
-                echo "Modifying Service file with Current User Path [$local_dir]"
-                if [ $use_sudo == "true" ]; then
-                    sudo sed -ia 's|/home/pi/nst-streaming-master|'$localapp_dir'|g' $srvc_name
-                else
-                    sed -ia 's|/home/pi/nst-streaming-master|'$localapp_dir'|g' $srvc_name
-                fi
+#   Checks to see if sudo should be used by default.
+#   It allows an argument of "true"/"false" to use sudo if it's allowed/supported on the machine
+check_sudo() {
+    _useSudo="false"
+    if [ -x "$(command -v sudo)" ]; then
+        if [ "$1" = "true" ]; then
+            if [ $_currentUser != "root" ]; then
+                _useSudo="true"
             fi
-            update_srvc
-        else
-            echo "New NST Service file not present..."
-            exit 1
         fi
+    fi
+    #echo "Using Sudo: ($_useSudo)"
+}
 
+checkOwnerOk() {
+    dir_owner="$(stat -c '%U' $_userDir)"
+    if [ $_currentUser != $dir_owner ]; then
+        return 1
     else
-        echo "Zip file not present..."
+        return 0
+    fi
+}
+
+usedSudoDesc() {
+    if $_useSudo; then
+        return " | (SUDO)"
+    else
+        return ""
+    fi
+}
+
+sudoPreCmd() {
+    _cmd=$1
+    if $_useSudo; then
+        _cmd="sudo $_cmd"; $_cmd
+    else
+        $_cmd
+    fi
+}
+
+#   Set current user as owner of apps working directory
+set_owner() {
+    echo ""
+    echo "--------------------------------------------------------------"
+    check_sudo "true"
+    echo "Making ($_currentUser) Owner of directory [$_userDir]$usedSudoDesc"
+    sudoPreCmd "chown -R $_currentUser:$_currentUser $_userDir"
+    # verifies owner was set
+    if [ ! checkOwnerOk ]; then
+        echo "Error: Setting $_currentUser failed for Directory ($_userDir)"
         exit 1
     fi
 }
 
-stop_old_srvc() {
-    echo "----------------------------------------------------------------------"
-    echo "Checking for Existing NST Streaming Service File"
-    if [ -f $old_srvcinstall ];
-    then
-        echo "Existing Service File Found..."
-        echo "Removing Old Service"
-        remove_srvc
-        echo "----------------------------------------------------------------------"
+#   This installs all pre-requisite APT Packages required by the service
+install_prereqs() {
+    echo ""
+    echo "--------------------------------------------------------------"
+    check_sudo "true"
+    echo "Installing/Updating Required APT Packages$usedSudoDesc"
+    sudoPreCmd "apt-get update"
+    sudoPreCmd "apt-get upgrade -f -y --force-yes"
+    if $_useSudo; then
+        curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
     else
-        echo "Existing Service File Not Found..."
-        echo "----------------------------------------------------------------------"
+        curl -sL https://deb.nodesource.com/setup_7.x | bash -
+    fi
+    sudoPreCmd "apt-get install wget git-core unzip openssh-server nodejs build-essential -y"
+}
+
+getLatestPackage() {
+    download_package
+    if [ -f $app_zip_file ];
+    then
+        remove_old_srvc
+        unzip_pkg
+        #check_sudo # because set_owner changes the sudo allow to true
+        echo "Changing to [$working_app_dir] directory..."
+        cd $working_app_dir
+        install_node_app
+        update_srvc
+        exit 0
+    else
+        echo "Error: NST Package Zip File ($app_zip_file) Not Found"
+        echo "at ($_userDir)"
+        exit 1
     fi
 }
 
-remove_srvc() {
-    echo "Disabling and Removing Existing NST Streaming Service"
-    if [ $use_sudo == "true" ]; then
-        sudo systemctl stop $old_name
-        sudo systemctl disable $old_name
-        sudo rm $old_srvcinstall
+#   This Downloads the latest NST Streaming package from the distribution source and extracts it
+download_package() {
+    if [ checkOwnerOk != "true" ]; then
+        set_owner
+    fi
+    check_sudo
+    echo ""
+    echo "--------------------------------------------------------------------------"
+    echo "Downloading the Latest NST-Streaming Package ($src_zip_name)$usedSudoDesc"
+    echo "--------------------------------------------------------------------------"
+    sudoPreCmd "wget -N $remote_file -P $_userDir"
+}
+
+unzip_pkg() {
+    echo ""
+    echo "--------------------------------------------------------------"
+    check_sudo
+    if [ -f $app_zip_file ];
+    then
+        cd $_userDir
+        echo "Unzipping Latest NST Package to $working_app_dir$usedSudoDesc"
+        sudoPreCmd "unzip -o $app_zip_file"
+        set_owner
     else
-        systemctl stop $old_name
-        systemctl disable $old_name
-        rm $old_srvcinstall
+        echo "Error: Unzip Failed because $app_zip_file can't be located"
+        exit 1
+    fi
+}
+
+install_node_app() {
+    echo ""
+    echo "--------------------------------------------------------------"
+    check_sudo
+    if [ -d $working_app_dir ]; then
+        cd $working_app_dir
+        echo "Running Node Service Install$usedSudoDesc"
+        sudoPreCmd "npm install --no-optional"
+    else
+        echo "Error: Node App NPM Install Failed because the directory ($working_app_dir) wasn't found"
+        exit 1
+    fi
+}
+
+modify_srvc_file_for_user() {
+    check_sudo
+    #echo "New NST Streaming Service File found. Updating!!!"
+    if [ $_currentUser != "pi" ];
+    then
+        echo "Modifying Service File with Current User Path [$_userDir]$usedSudoDesc"
+        sudoPreCmd "sed -ia 's|/home/pi/nst-streaming-master|'$working_app_dir'|g' $cur_srvc_name"
+    fi
+}
+
+remove_old_srvc() {
+    echo ""
+    echo "--------------------------------------------------------------"
+    echo "Checking for Existing NST Streaming Service File"
+    if [ -f $old_srvc_path ]; then
+        check_sudo "true"
+        echo "Result: Found Existing Service File..."
+        echo "Disabling and Removing Existing NST Streaming Service$usedSudoDesc"
+        sudoPreCmd "systemctl stop $old_srvc_name"
+        sudoPreCmd "systemctl disable $old_srvc_name"
+        sudoPreCmd "rm $old_srvc_path"
+    else
+        echo "Result: Nothing to Remove.  No Existing Service File Found"
     fi
 }
 
 update_srvc() {
-    echo "----------------------------------------------------------------------"
-    if [ ! -f "$old_srvcinstall" ]; then
-        if [ $use_sudo == "true" ]; then
-            echo "Copying Updated NST Streaming Service File to Systemd Folder"
-            sudo cp $new_srvcfile $new_srvcinstall -f
-            echo "Reloading Systemd Daemon to reflect service changes..."
-            sudo systemctl daemon-reload
-            echo "Enabling NST Service..."
-            sudo systemctl enable $srvc_name
-            echo "Starting up NST Streaming Service..."
-            sudo systemctl start $srvc_name
-        else
-            echo "Copying Updated NST Streaming Service File to Systemd Folder"
-            cp $new_srvcfile $new_srvcinstall -f
-            echo "Reloading Systemd Daemon to reflect service changes..."
-            systemctl daemon-reload
-            echo "Enabling NST Service..."
-            systemctl enable $srvc_name
-            echo "Starting up NST Streaming Service..."
-            systemctl start $srvc_name
-        fi
+    echo ""
+    echo "--------------------------------------------------------------"
+    if [ -f $new_srvc_src_path ]; then
+        modify_srvc_file_for_user
     else
-        echo "Not copying new service as old file is still there..."
+        echo "Error: New NST Service File ($new_srvc_src_path) Not Present."
         exit 1
     fi
-    echo "----------------------------------------------------------------------"
-}
-
-install_prereqs() {
-    echo "----------------------------------------------------------------------"
-    echo "Installing Required Pre-Requisite APT Packages"
-    if [ $use_sudo == "true" ]; then
-        sudo apt-get update
-        sudo apt-get upgrade -f -y --force-yes
-        curl -sL https://deb.nodesource.com/setup_7.x | sudo -E bash -
-        sudo apt-get install wget git-core unzip openssh-server nodejs build-essential -y
+    if [ ! -f "$old_srvc_path" ]; then
+        check_sudo "true"
+        echo "Copying Updated NST Streaming Service File to Systemd Folder$usedSudoDesc"
+        sudoPreCmd "cp $new_srvc_src_path $new_srvc_dest_path -f"
+        if [ -f $new_srvc_dest_path ]; then
+            echo "Reloading Systemd Daemon to Reflect Service File Changes$usedSudoDesc"
+            sudoPreCmd "systemctl daemon-reload"
+            echo "Enabling NST Service (Systemd)$usedSudoDesc"
+            sudoPreCmd "systemctl enable $cur_srvc_name"
+            echo "Starting NST Streaming Service$usedSudoDesc"
+            sudoPreCmd "systemctl start $cur_srvc_name"
+        else
+            echo "Error: Copying Service File to Systemd folder didn't work"
+            exit 1
+        fi
     else
-        apt-get update
-        apt-get upgrade -f -y --force-yes
-        curl -sL https://deb.nodesource.com/setup_7.x | bash -
-        apt-get install wget git-core unzip openssh-server nodejs build-essential -y
-    fi
-    echo "----------------------------------------------------------------------"
-}
-
-set_owner() {
-    echo "Making $_user owner on $local_dir..."
-    if [ $use_sudo == "true" ]; then
-        sudo chown -R $_user:$_user $local_dir
-    else
-        chown -R $_user:$_user $local_dir
+        echo "Error: Can't Copy New Service because Old File is Still There!!"
+        exit 1
     fi
 }
 
-cleanup() {
-    echo "----------------------------------------------------------------------"
-    echo "Removing All NST-Streaming Data and Files"
-    if [ $use_sudo == "true" ]; then
-        sudo rm -rf $localapp_dir
-        sudo rm -rf $local_dir/$zip_name
-    else
-        rm -rf $localapp_dir
-        rm -rf $local_dir/$zip_name
-    fi
-    echo "----------------------------------------------------------------------"
-}
-
-uninstall() {
-    remove_srvc
-    cleanup
-}
-
-echo "Executing Script $0 $1"
-dir_owner="$(stat -c '%U' $local_dir)"
-if [ $_user != $dir_owner ];
-then
+pkg_cleanup() {
     check_sudo
-    set_owner
-fi
+    if [ -d $working_app_dir ]; then
+        echo ""
+        echo "----------------------------------------------------------------------"
+        if [ checkOwnerOk != "true" ]; then
+            set_owner
+        fi
+        echo "Removing All NST-Streaming Data and Files$usedSudoDesc"
+        sudoPreCmd "rm -rf $working_app_dir"
+        if [ -f $_userDir/$src_zip_name ]; then
+            sudoPreCmd "rm -rf $_userDir/$src_zip_name"
+        fi
+    fi
+}
 
-if [ "$1" = "-r" ];
-then
-    check_sudo
-    uninstall
+remove_all() {
+    remove_old_srvc
+    pkg_cleanup
+}
+
+showPkgDlOk() {
+    echo ""
+    echo "=============================================================="
+    echo "               Install/Update Result: (Success)               "
+    echo "          New Data Downloaded and Service Installed           "
+    echo "                                                              "
+    echo "            View Service Logs Using this Command:             "
+    echo "               journalctl -f -u nst-streaming                 "
+    echo "=============================================================="
+    echo ""
     exit
-elif [ "$1" = "-f" ];
-then
-    check_sudou
-    echo "Removing $local_file ..."
-    if [ $use_sudo == "true" ]; then
-        sudo rm -rf $local_file
-    else
-        rm -rf $local_file
-    fi
-elif [ "$1" = "-sp" ];
-then
-    check_sudo
-    download_install_zip
-elif [ "$1" = "-help" ];
-then
-    echo " "
-    echo "NST Utility Scritpt Help..."
-    echo "These are the available arguments:"
-    echo "None | This runs the full install process"
-    echo "-f   | Forcefully Update Files/Service"
-    echo "-r   | Completely Remove Files/Service from System"
-    echo "-sp  | Skip Pre-req install and just update existing files"
-    echo " "
+}
+
+showCleanupOk() {
+    echo ""
+    echo "=============================================================="
+    echo "              Cleanup/Removal Result: (Success)               "
+    echo "          All NST-Streaming Data and Files Removed            "
+    echo "=============================================================="
+    echo ""
     exit
-else
-    check_sudo
+}
+
+# echo "Executing Script $0 $1"
+clear
+if [ $# -eq 0 ]; then
+    showTitle
     install_prereqs
-fi
+    getLatestPackage
+else
+    if [ "$1" = "-r" ] || [ "$1" = "-remove" ] || [ "$1" = "-clean" ]; then
+        showTitle
+        remove_all
+        showCleanupOk
 
-# if [ -f $local_file ];
-# then
-    #echo "Checking for Newer file on remote server..."
-    # modified=$(curl --silent --head $remote_file |
-    #             awk -F: '/^Last-Modified/ { print $2 }')
-    # remote_ctime=$(date --date="$modified" +%s)
-    # local_ctime=$(stat -c %z "$local_file")
-    # local_ctime=$(date --date="$local_ctime" +%s)
-    # echo "local file time: $local_ctime"
-    # echo "remote file time: $remote_ctime"
-    # if [ $local_ctime -lt $remote_ctime ];
-    # then
-    #     echo "Updating..."
-    # else
-    #     echo "Your version is the current...Skipping..."
-    #     exit
-    # fi
-# fi
-check_sudo
-download_install_zip
+    elif [ "$1" = "-f" ] || [ "$1" = "-force" ]; then
+        showTitle
+        remove_all
+        getLatestPackage
+        showPkgDlOk
+
+    elif [ "$1" = "-u" ] || [ "$1" = "-update" ]; then
+        showTitle
+        getLatestPackage
+        showPkgDlOk
+
+    elif [ "$1" = "-help" ] || [ "$1" = "-h" ] || [ "$1" = "-?" ] || [ "$1" != "-u" ] || [ "$1" != "-update" ] || [ "$1" != "-f" ] || [ "$1" != "-force" ] || [ "$1" != "-r" ] || [ "$1" != "-remove" ] || [ "$1" != "-clean" ]; then
+        showHelp
+    fi
+fi
