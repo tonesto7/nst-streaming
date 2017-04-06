@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.6.0';
+var appVer = '0.7.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -39,6 +39,12 @@ var serviceStartDt = getDtNow();
 var lastEventDt = null;
 var lastEventData = null;
 var eventCount = 0;
+
+var ssdp = require('@achingbrain/ssdp');
+var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
+const uuidV4 = require('uuid/v4');
+var ssdpServer;
+var ssdpOn = false;
 
 // This initializes the winston logging instance
 var logger = new (winston.Logger)({
@@ -135,11 +141,15 @@ function manageStream() {
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
+		ssdpSrvInit();
+
 	} else if (!isStreaming && requestStreamOn == 'true') {
 		startStreaming();
 		isStreaming = true;
+		stopSsdp();
 	} else {
 		isStreaming = false;
+		ssdpSrvInit();
 	}
 }
 
@@ -166,11 +176,13 @@ function startStreaming() {
 	evtSource.addEventListener('open', function(e) {
 		logger.info('Nest Connection Opened!');
 		isStreaming = true;
+		stopSsdp();
 	});
 
 	evtSource.addEventListener('closed', function(e) {
 		logger.info('Nest Connection Closed!');
 		isStreaming = false;
+		ssdpSrvInit();
 	});
 
 	evtSource.addEventListener('auth_revoked', function(e) {
@@ -178,6 +190,7 @@ function startStreaming() {
 		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
 		isStreaming = false;
 		lastEventData = null;
+		ssdpSrvInit();
 		sendStatusToST("Authrevoked");
 	});
 
@@ -193,6 +206,7 @@ function startStreaming() {
 			}
 		}
 		isStreaming = false;
+		ssdpSrvInit();
 		lastEventData = null;
 		sendStatusToST("StreamError");
 	};
@@ -211,6 +225,7 @@ function sendDataToST(data) {
 			if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
 				//logger.debug("sendDataToST body.id... ", body.id);
 				isStreaming = true;
+				stopSsdp();
 				return true;
 			} else {
 				logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
@@ -253,83 +268,94 @@ function sendStatusToST(reason) {
 }
 
 function ssdpSrvInit() {
-	var ssdp = require('@achingbrain/ssdp');
-	var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
-	const uuidV4 = require('uuid/v4');
-	var ssdpServer = ssdp({
-		signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
-		sockets: [{
-		    type: 'udp4',
-		    broadcast: {
-		      address: '239.255.255.250',
-		      port: 1900
-		    },
-		    bind: {
-		      address: '0.0.0.0',
-		      port: 1900
-		    },
-		    maxHops: 4
-		}]
-	});
+	if(!ssdpOn) {
+		logger.info('ssdpSrvInit: starting (PID: ' + process.pid + ')');
 
-	ssdpServer.advertise({
-		usn: usnVal,
-		ipv4: true,
-		ipv6: false,
-		interval: 15000,
-		location: {
-			udp4: 'http://' + getIPAddress() + ':' + port + '/deviceDesc.xml'
-		},
-		details: {
-			specVersion: {
-				major: 1,
-				minor: 0
+		ssdpServer = ssdp({
+			signature: 'node.js/0.12.6 UPnP/1.1 nst-streaming/' + appVer,
+			sockets: [{
+			    type: 'udp4',
+			    broadcast: {
+			      address: '239.255.255.250',
+			      port: 1900
+			    },
+			    bind: {
+			      address: '0.0.0.0',
+			      port: 1900
+			    },
+			    maxHops: 4
+			}]
+		});
+	
+		ssdpOn = true;
+	
+		ssdpServer.advertise({
+			usn: usnVal,
+			ipv4: true,
+			ipv6: false,
+			interval: 15000,
+			location: {
+				udp4: 'http://' + getIPAddress() + ':' + port + '/deviceDesc.xml'
 			},
-			URLBase: 'http://' + getIPAddress() + ':' + port,
-			device: {
-				deviceType: usnVal,
-				friendlyName: 'NST-Streaming Service',
-				serviceIp: getIPAddress(),
-				servicePort: port,
-				hostName: getHostName(),
-				manufacturer: '',
-				manufacturerURL: '',
-				modelDescription: '',
-				modelName: '',
-				modelNumber: '',
-				modelURL: '',
-				serialNumber: '',
-				version: appVer,
-				UDN: 'uuid:' + uuidV4(),
-				presentationURL: '',
-				hostInfo: getHostInfo()
+			details: {
+				specVersion: {
+					major: 1,
+					minor: 0
+				},
+				URLBase: 'http://' + getIPAddress() + ':' + port,
+				device: {
+					deviceType: usnVal,
+					friendlyName: 'NST-Streaming Service',
+					serviceIp: getIPAddress(),
+					servicePort: port,
+					hostName: getHostName(),
+					manufacturer: '',
+					manufacturerURL: '',
+					modelDescription: '',
+					modelName: '',
+					modelNumber: '',
+					modelURL: '',
+					serialNumber: '',
+					version: appVer,
+					UDN: 'uuid:' + uuidV4(),
+					presentationURL: '',
+					hostInfo: getHostInfo()
+				}
 			}
-		}
-	})
-	.then(advert => {
-		app.get('/deviceDesc.xml', (request, response) => {
-			advert.service.details()
-			.then(details => {
-				response.set('Content-Type', 'text/xml');
-				response.send(details);
-			})
-			.catch(error => {
-				response.set('Content-Type', 'text/xml');
-				response.send(error);
+		})
+		.then(advert => {
+			app.get('/deviceDesc.xml', (request, response) => {
+				advert.service.details()
+				.then(details => {
+					response.set('Content-Type', 'text/xml');
+					response.send(details);
+				})
+				.catch(error => {
+					response.set('Content-Type', 'text/xml');
+					response.send(error);
+				});
 			});
 		});
-	});
-	logger.info('Activate SSDP Broadcast for SmartThings hub to detect...');
+		logger.info('Activated SSDP Broadcast for SmartThings hub to detect...');
 
-	//ssdpServer.on('error', console.error);
-	// ssdpServer.on('transport:outgoing-message', (socket, message, remote) => {
-	//   console.info('-> Outgoing to %s:%s via %s', remote.address, remote.port, socket.type);
-	//   console.info(message.toString('utf8'));
-    // });
-	// ssdpServer.on('transport:incoming-message', (message, remote) => {
-	//   console.info('<- Incoming from %s:%s', remote.address, remote.port);
-	//   console.info(message.toString('utf8'));
- //  	});
+		//ssdpServer.on('error', console.error);
+		// ssdpServer.on('transport:outgoing-message', (socket, message, remote) => {
+		//   console.info('-> Outgoing to %s:%s via %s', remote.address, remote.port, socket.type);
+		//   console.info(message.toString('utf8'));
+	        // });
+		// ssdpServer.on('transport:incoming-message', (message, remote) => {
+		//   console.info('<- Incoming from %s:%s', remote.address, remote.port);
+		//   console.info(message.toString('utf8'));
+		// });
+	}
+}
+
+function stopSsdp() {
+	if(ssdpOn) {
+		logger.info('stopSsdp: (PID: ' + process.pid + ')');
+		ssdpOn = false;
+		ssdpServer.stop();
+	}
 }
 
 function getIPAddress() {
