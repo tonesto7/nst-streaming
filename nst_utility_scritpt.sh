@@ -191,7 +191,7 @@ then
     exit
 elif [ "$1" = "-f" ];
 then
-    check_sudo
+    check_sudou
     echo "Removing $local_file ..."
     if [ $use_sudo == "true" ]; then
         sudo rm -rf $local_file
