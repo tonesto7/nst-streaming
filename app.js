@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.7.0';
+var appVer = '0.8.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -47,6 +47,7 @@ var ssdpServer;
 var ssdpOn = false;
 
 var spokeWithST = true;
+var spokeWithNest = true;
 
 // This initializes the winston logging instance
 var logger = new (winston.Logger)({
@@ -171,6 +172,7 @@ function startStreaming() {
 				logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount);
 				sendDataToST(data);
 			}
+			spokeWithNest = true;
 		} catch (ex) {
 			logger.debug('evtSource (catch)...', e, 'readyState: ' + e.readyState);
 		}
@@ -490,14 +492,15 @@ function formatBytes(bytes) {
 }
 
 let intervalObj = setInterval(() => {
-	if(spokeWithST) {
+	if(spokeWithST && spokeWithNest) {
 		logger.info('Watchdog run | ProcessId: ' + process.pid);
 		spokeWithST = false;
+		spokeWithNest = false;
 	} else {
 		logger.info('Watchdog timeout | ProcessId: ' + process.pid);
 		let a = gracefulStop();
 	}
-}, 10*60*1000);
+}, 15*60*1000);
 
 var hostAddr = getIPAddress();
 
