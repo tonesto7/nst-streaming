@@ -500,7 +500,7 @@ let intervalObj = setInterval(() => {
 		logger.info('Watchdog timeout | ProcessId: ' + process.pid);
 		let a = gracefulStop();
 	}
-}, 15*60*1000);
+}, 35*60*1000);
 
 var hostAddr = getIPAddress();
 
