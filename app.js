@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.8.0';
+var appVer = '0.8.1';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
