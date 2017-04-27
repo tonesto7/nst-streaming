@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.8.1';
+var appVer = '0.8.2';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -145,7 +145,8 @@ function manageStream() {
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
-		ssdpSrvInit();
+		let a = gracefulStop();
+		//ssdpSrvInit();
 
 	} else if (!isStreaming && requestStreamOn == 'true') {
 		startStreaming();
@@ -153,7 +154,8 @@ function manageStream() {
 		stopSsdp();
 	} else {
 		isStreaming = false;
-		ssdpSrvInit();
+		let a = gracefulStop();
+		//ssdpSrvInit();
 	}
 }
 
@@ -187,7 +189,8 @@ function startStreaming() {
 	evtSource.addEventListener('closed', function(e) {
 		logger.info('Nest Connection Closed!');
 		isStreaming = false;
-		ssdpSrvInit();
+		let a = gracefulStop();
+		//ssdpSrvInit();
 	});
 
 	evtSource.addEventListener('auth_revoked', function(e) {
@@ -195,8 +198,9 @@ function startStreaming() {
 		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
 		isStreaming = false;
 		lastEventData = null;
-		ssdpSrvInit();
 		sendStatusToST("Authrevoked");
+		let a = gracefulStop();
+		//ssdpSrvInit();
 	});
 
 	//evtSource.addEventListener('error', function(e) {
@@ -211,9 +215,10 @@ function startStreaming() {
 			}
 		}
 		isStreaming = false;
-		ssdpSrvInit();
 		lastEventData = null;
 		sendStatusToST("StreamError");
+		let a = gracefulStop();
+		//ssdpSrvInit();
 	};
 	//}, false);
 }
