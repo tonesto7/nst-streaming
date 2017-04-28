@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.8.2';
+var appVer = '0.8.3';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -32,6 +32,8 @@ var evtSource;
 var nestToken = null;
 var stToken = null;
 var callbackUrl = null;
+var sendTimerActive = false;
+var theTimer = null;
 var requestStreamOn = false;
 var isStreaming = false;
 var serviceStartTime = Date.now(); //Returns time in millis
@@ -149,6 +151,7 @@ function manageStream() {
 		//ssdpSrvInit();
 
 	} else if (!isStreaming && requestStreamOn == 'true') {
+		sendTimerActive = false;
 		startStreaming();
 		isStreaming = true;
 		stopSsdp();
@@ -162,17 +165,29 @@ function manageStream() {
 function startStreaming() {
 	//logger.debug("Start Stream");
 	evtSource = new EventSource(nest_api_url + '?auth=' + nestToken);
+
 	evtSource.addEventListener('put', function(e) {
 		var data = e.data;
 		//logger.debug(data);
 		try {
 			logger.info('New Nest API Event Data Received... | PID: ' + process.pid);
 			if (data && lastEventData != data) {
+
+				console.log('Setting send to ST timer for PID: ' + process.pid);
+				if(theTimer) {
+					clearTimeout(theTimer);
+					theTimer = null;
+				}
 				lastEventDt = getDtNow();
 				lastEventData = data;
 				eventCount += 1;
-				logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount);
-				sendDataToST(data);
+				theTimer = setTimeout(function() {
+					sendTimerActive = false;
+					theTimer = null;
+					logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount);
+					sendDataToST(lastEventData);
+				}, 2*1000);
+				sendTimerActive = true;
 			}
 			spokeWithNest = true;
 		} catch (ex) {
