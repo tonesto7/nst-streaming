@@ -1,13 +1,13 @@
 /*jshint esversion: 6 */
 /*
 	NST-Streaming
-	Author: Anthony Santilli
+	Authors: Anthony Santilli and Eric Schott
 	Copyright 2017 Anthony Santilli
 
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.8.4';
+var appVer = '0.8.5';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -129,7 +129,7 @@ app.post('/status', function(req, res) {
 
 	var statRequest = require('request');
 	if (callbackUrl && stToken) {
-		spokeWithST = true
+		spokeWithST = true;
 		statRequest({
 			url: callbackUrl + '/streamStatus?access_token=' + stToken,
 			method: 'POST',
@@ -207,8 +207,8 @@ function startStreaming() {
 				savedMyStruct = mystruct;
 
 				if(mystruct.thermostats) {
-					var fLen = mystruct.thermostats.length;
-					for (i = 0; i < fLen; i++) {
+					var tLen = mystruct.thermostats.length;
+					for (i = 0; i < tLen; i++) {
 						var t1 = mystruct.thermostats[i];
 						if(JSON.stringify(mydata.devices.thermostats[t1]) != JSON.stringify(savedMyThermostats[t1])) {
 							chgd = true;
@@ -222,28 +222,28 @@ function startStreaming() {
 				}
 
 				if(mystruct.protects) {
-					var fLen = mystruct.protects.length;
-					for (i = 0; i < fLen; i++) {
-						var t1 = mystruct.protects[i];
-						if(JSON.stringify(mydata.devices.protects[t1]) != JSON.stringify(savedMyProtects[t1])) {
+					var pLen = mystruct.protects.length;
+					for (i = 0; i < pLen; i++) {
+						var p1 = mystruct.protects[i];
+						if(JSON.stringify(mydata.devices.protects[p1]) != JSON.stringify(savedMyProtects[p1])) {
 							chgd = true;
 							//logger.info('mystruct.protects ' + JSON.stringify(mystruct.protects));
 							logger.info('protect changed ' + JSON.stringify(mystruct.protects[i]));
 						}
-						savedMyProtects[t1] = mydata.devices.protects[t1];
+						savedMyProtects[p1] = mydata.devices.protects[p1];
 					}
 				}
 
 				if(mystruct.cameras) {
-					var fLen = mystruct.cameras.length;
-					for (i = 0; i < fLen; i++) {
-						var t1 = mystruct.cameras[i];
-						if(JSON.stringify(mydata.devices.cameras[t1]) != JSON.stringify(savedMyCameras[t1])) {
+					var cLen = mystruct.cameras.length;
+					for (i = 0; i < cLen; i++) {
+						var c1 = mystruct.cameras[i];
+						if(JSON.stringify(mydata.devices.cameras[c1]) != JSON.stringify(savedMyCameras[c1])) {
 							chgd = true;
 							//logger.info('mystruct.cameras ' + JSON.stringify(mystruct.cameras));
 							logger.info('camera changed ' + JSON.stringify(mystruct.cameras[i]));
 						}
-						savedMyCameras[t1] = mydata.devices.cameras[t1];
+						savedMyCameras[c1] = mydata.devices.cameras[c1];
 					}
 				}
 
@@ -251,7 +251,7 @@ function startStreaming() {
 				if((eventCount % 5) == 0) {
 					logger.info('mydata.devices ' + JSON.stringify(mydata.devices));
 					logger.info('mydata.metadata ' + JSON.stringify(mydata.metadata));
-					logger.info('mydata.structures ' + JSON.stringify(mydata.structures)); 
+					logger.info('mydata.structures ' + JSON.stringify(mydata.structures));
 				}
 */
 				if(chgd) {
@@ -675,4 +675,3 @@ process.on('SIGTERM', gracefulStop);
 
 //catches uncaught exceptions
 //process.once('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
-
