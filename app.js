@@ -238,12 +238,30 @@ function startStreaming() {
 					var cLen = mystruct.cameras.length;
 					for (i = 0; i < cLen; i++) {
 						var c1 = mystruct.cameras[i];
-						if(JSON.stringify(mydata.devices.cameras[c1]) != JSON.stringify(savedMyCameras[c1])) {
+						var adjC1 = {};
+						var adjC2 = {};
+						adjC1 = mydata.devices.cameras[c1];
+						adjC2 = savedMyCameras[c1];
+						var myisonline = adjC1.is_online;
+						var myisstreaming = adjC1.is_streaming;
+						logger.info('myisstreaming myisonline ' + myisstreaming + ' ' + myisonline);
+						if(!myisonline || !myisstreaming) {
+							if(adjC1.web_url) { adjC1.web_url = ""; }
+							if(adjC1.snapshot_url) { adjC1.snapshot_url = ""; }
+							if(adjC1.app_url) { adjC1.app_url = ""; }
+							if(adjC1.last_event) {
+								if(adjC1.last_event.image_url) { adjC1.last_event.image_url = ""; }
+								if(adjC1.last_event.web_url) { adjC1.last_event.web_url = ""; }
+								if(adjC1.last_event.app_url) { adjC1.last_event.app_url = ""; }
+								if(adjC1.last_event.animated_image_url) { adjC1.last_event.animated_image_url = ""; }
+							}
+						}
+						if(JSON.stringify(adjC1) != JSON.stringify(adjC2)) {
 							chgd = true;
 							//logger.info('mystruct.cameras ' + JSON.stringify(mystruct.cameras));
 							logger.info('camera changed ' + JSON.stringify(mystruct.cameras[i]));
 						}
-						savedMyCameras[c1] = mydata.devices.cameras[c1];
+						savedMyCameras[c1] = adjC1;
 					}
 				}
 
