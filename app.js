@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '0.8.3';
+var appVer = '0.8.4';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -29,18 +29,28 @@ if (!fs.existsSync(logDir)) {
 }
 
 var evtSource;
+
 var nestToken = null;
 var stToken = null;
 var callbackUrl = null;
+var requestStreamOn = false;
+var structure = null;
+
 var sendTimerActive = false;
 var theTimer = null;
-var requestStreamOn = false;
 var isStreaming = false;
 var serviceStartTime = Date.now(); //Returns time in millis
 var serviceStartDt = getDtNow();
 var lastEventDt = null;
 var lastEventData = null;
 var eventCount = 0;
+var allEventCount = 0;
+
+var savedMyStruct = {};
+var savedMyMeta = {};
+var savedMyThermostats = {};
+var savedMyProtects = {};
+var savedMyCameras = {};
 
 var ssdp = require('@achingbrain/ssdp');
 var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
@@ -105,6 +115,7 @@ app.post('/stream', function(req, res) {
 	callbackUrl = req.headers.callback;
 	requestStreamOn = req.headers.connstatus;
 	stToken = req.headers.sttoken;
+	structure = req.headers.structure;
 	//logger.debug(req.headers);
 	manageStream();
 });
@@ -113,6 +124,7 @@ app.post('/stream', function(req, res) {
 app.post('/status', function(req, res) {
 	callbackUrl = req.headers.callback;
 	stToken = req.headers.sttoken;
+	structure = req.headers.structure;
 	logger.info('SmartThings is Requesting Status... | PID: ' + process.pid);
 
 	var statRequest = require('request');
@@ -147,7 +159,7 @@ function manageStream() {
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
-		let a = gracefulStop();
+		let a = gracefulStopNoMsg();
 		//ssdpSrvInit();
 
 	} else if (!isStreaming && requestStreamOn == 'true') {
@@ -171,24 +183,96 @@ function startStreaming() {
 		//logger.debug(data);
 		try {
 			logger.info('New Nest API Event Data Received... | PID: ' + process.pid);
-			if (data && lastEventData != data) {
+			if (structure && data && lastEventData != data) {
+				var chgd = false;
 
-				console.log('Setting send to ST timer for PID: ' + process.pid);
-				if(theTimer) {
-					clearTimeout(theTimer);
-					theTimer = null;
+				var t0 = JSON.parse(data);
+				var mydata = {};
+				mydata = t0.data;
+
+				var mymeta =  {};
+				mymeta = mydata.metadata;
+				if(JSON.stringify(mymeta) != JSON.stringify(savedMyMeta)) {
+					chgd = true;
+					logger.info('myMeta changed ');
 				}
-				lastEventDt = getDtNow();
-				lastEventData = data;
-				eventCount += 1;
-				theTimer = setTimeout(function() {
-					sendTimerActive = false;
-					theTimer = null;
-					logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount);
-					sendDataToST(lastEventData);
-				}, 2*1000);
-				sendTimerActive = true;
+				savedMyMeta = mymeta;
+
+				var mystruct = {};
+				mystruct = mydata.structures[structure];
+				if(JSON.stringify(mystruct) != JSON.stringify(savedMyStruct)) {
+					chgd = true;
+					logger.info('myStruct changed structure ' + structure);
+				}
+				savedMyStruct = mystruct;
+
+				if(mystruct.thermostats) {
+					var fLen = mystruct.thermostats.length;
+					for (i = 0; i < fLen; i++) {
+						var t1 = mystruct.thermostats[i];
+						if(JSON.stringify(mydata.devices.thermostats[t1]) != JSON.stringify(savedMyThermostats[t1])) {
+							chgd = true;
+							//logger.info('mystruct.thermostats ' + JSON.stringify(mystruct.thermostats));
+							logger.info('thermostat changed ' + JSON.stringify(mystruct.thermostats[i]));
+							//logger.info('typeof mystruct... ' + typeof t1);
+							//logger.info('typeof mydata... ' + typeof mydata.devices.thermostats[t1]);
+						}
+						savedMyThermostats[t1] = mydata.devices.thermostats[t1];
+					}
+				}
+
+				if(mystruct.protects) {
+					var fLen = mystruct.protects.length;
+					for (i = 0; i < fLen; i++) {
+						var t1 = mystruct.protects[i];
+						if(JSON.stringify(mydata.devices.protects[t1]) != JSON.stringify(savedMyProtects[t1])) {
+							chgd = true;
+							//logger.info('mystruct.protects ' + JSON.stringify(mystruct.protects));
+							logger.info('protect changed ' + JSON.stringify(mystruct.protects[i]));
+						}
+						savedMyProtects[t1] = mydata.devices.protects[t1];
+					}
+				}
+
+				if(mystruct.cameras) {
+					var fLen = mystruct.cameras.length;
+					for (i = 0; i < fLen; i++) {
+						var t1 = mystruct.cameras[i];
+						if(JSON.stringify(mydata.devices.cameras[t1]) != JSON.stringify(savedMyCameras[t1])) {
+							chgd = true;
+							//logger.info('mystruct.cameras ' + JSON.stringify(mystruct.cameras));
+							logger.info('camera changed ' + JSON.stringify(mystruct.cameras[i]));
+						}
+						savedMyCameras[t1] = mydata.devices.cameras[t1];
+					}
+				}
+
+/*
+				if((eventCount % 5) == 0) {
+					logger.info('mydata.devices ' + JSON.stringify(mydata.devices));
+					logger.info('mydata.metadata ' + JSON.stringify(mydata.metadata));
+					logger.info('mydata.structures ' + JSON.stringify(mydata.structures)); 
+				}
+*/
+				if(chgd) {
+					if(theTimer) {
+						clearTimeout(theTimer);
+						theTimer = null;
+					}
+					lastEventDt = getDtNow();
+					lastEventData = data;
+					//logger.info('Setting send to ST timer for PID: ' + process.pid);
+					theTimer = setTimeout(function() {
+						sendTimerActive = false;
+						theTimer = null;
+						eventCount += 1;
+						logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount + ' / ' + allEventCount);
+						sendDataToST(lastEventData);
+					}, 2*1000);
+					sendTimerActive = true;
+				}
 			}
+			allEventCount += 1;
 			spokeWithNest = true;
 		} catch (ex) {
 			logger.debug('evtSource (catch)...', e, 'readyState: ' + e.readyState);
@@ -214,7 +298,7 @@ function startStreaming() {
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("Authrevoked");
-		let a = gracefulStop();
+		let a = gracefulStopNoMsg();
 		//ssdpSrvInit();
 	});
 
@@ -231,8 +315,8 @@ function startStreaming() {
 		}
 		isStreaming = false;
 		lastEventData = null;
-		sendStatusToST("StreamError");
-		let a = gracefulStop();
+		sendStatusToST("NestStreamError");
+		let a = gracefulStopNoMsg();
 		//ssdpSrvInit();
 	};
 	//}, false);
@@ -518,7 +602,8 @@ let intervalObj = setInterval(() => {
 		spokeWithNest = false;
 	} else {
 		logger.info('Watchdog timeout | ProcessId: ' + process.pid);
-		let a = gracefulStop();
+		sendStatusToST('WatchDog');
+		let a = gracefulStopNoMsg();
 	}
 }, 35*60*1000);
 
@@ -542,7 +627,7 @@ function exitHandler(options, err) {
 	console.log('exitHandler: (PID: ' + process.pid + ')', options, err);
 	if (options.cleanup) {
 		logger.info('exitHandler: ', 'ClosedByUserConsole');
-		sendStatusToST('ClosedByUserConsole');
+		sendStatusToST('ClosedExitHandler');
 	} else if (err) {
 		logger.info('exitHandler error', err);
 		sendStatusToST('ClosedByError');
@@ -551,11 +636,10 @@ function exitHandler(options, err) {
 	process.exit();
 }
 
-var gracefulStop = function() {
-	logger.debug('gracefulStop: ', 'ClosedByUserConsole ' + process.pid);
+var gracefulStopNoMsg = function() {
+	logger.debug('gracefulStopNoMsg: ', process.pid);
 	lastEventData = null;
 	isStreaming = false;
-	sendStatusToST('ClosedByUserConsole');
 	if(evtSource) {
 		evtSource.close(function () {
 			console.log('Nest Streaming Connection has been Closed');
@@ -567,6 +651,14 @@ var gracefulStop = function() {
 			console.error("Could not close connections in time, forcefully shutting down");
 			process.exit(1);
 	}, 2*1000);
+};
+
+var gracefulStop = function() {
+	logger.debug('gracefulStop: ', 'ClosedByNodeService ' + process.pid);
+	lastEventData = null;
+	isStreaming = false;
+	sendStatusToST('ClosedByNodeService');
+	a = gracefulStopNoMsg();
 };
 
 //do something when app is closing
@@ -583,3 +675,4 @@ process.on('SIGTERM', gracefulStop);
 
 //catches uncaught exceptions
 //process.once('uncaughtException', exitHandler.bind(null, { cleanup: true, exit: true }));
+
