@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------GLOBAL VARIABLES--------------------------------------
-_scriptVer="0.1"
+_scriptVer="0.2"
 _useSudo="false"
 
 _currentUser="$USER"
@@ -19,7 +19,7 @@ new_srvc_dest_path="/etc/systemd/system/$cur_srvc_name"
 old_srvc_name="nst-streaming.service"
 old_srvc_path="/etc/systemd/system/$old_srvc_name"
 
-remote_file="https://dl.dropboxusercontent.com/s/axr6bi9g73di5px/$src_zip_name"
+remote_file="https://nst-manager.com/files/$src_zip_name"
 # ----------------------------------------------------------------------------------------
 
 showTitle() {
