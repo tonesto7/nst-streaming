@@ -55,7 +55,7 @@ var savedMyCameras = {};
 var ssdp = require('@achingbrain/ssdp');
 var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
 const uuidV4 = require('uuid/v4');
-var ssdpServer;
+var ssdpServer = null;
 var ssdpOn = false;
 
 var spokeWithST = true;
@@ -159,8 +159,8 @@ function manageStream() {
 		lastEventData = null;
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
-		let a = gracefulStopNoMsg();
-		//ssdpSrvInit();
+		//let a = gracefulStopNoMsg();
+		ssdpSrvStart();
 
 	} else if (!isStreaming && requestStreamOn == 'true') {
 		sendTimerActive = false;
@@ -169,8 +169,10 @@ function manageStream() {
 		stopSsdp();
 	} else {
 		isStreaming = false;
-		let a = gracefulStop();
-		//ssdpSrvInit();
+		lastEventData = null;
+		sendStatusToST('ManagerClosed');
+		//let a = gracefulStopNoMsg();
+		ssdpSrvStart();
 	}
 }
 
@@ -306,8 +308,10 @@ function startStreaming() {
 	evtSource.addEventListener('closed', function(e) {
 		logger.info('Nest Connection Closed!');
 		isStreaming = false;
-		let a = gracefulStop();
-		//ssdpSrvInit();
+		lastEventData = null;
+		sendStatusToST('NestConnectionClosed');
+		//let a = gracefulStopNoMsg();
+		ssdpSrvStart();
 	});
 
 	evtSource.addEventListener('auth_revoked', function(e) {
@@ -316,8 +320,8 @@ function startStreaming() {
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("Authrevoked");
-		let a = gracefulStopNoMsg();
-		//ssdpSrvInit();
+		//let a = gracefulStopNoMsg();
+		ssdpSrvStart();
 	});
 
 	//evtSource.addEventListener('error', function(e) {
@@ -334,8 +338,8 @@ function startStreaming() {
 		isStreaming = false;
 		lastEventData = null;
 		sendStatusToST("NestStreamError");
-		let a = gracefulStopNoMsg();
-		//ssdpSrvInit();
+		//let a = gracefulStopNoMsg();
+		ssdpSrvStart();
 	};
 	//}, false);
 }
@@ -397,7 +401,7 @@ function sendStatusToST(reason) {
 }
 
 function ssdpSrvInit() {
-	if(!ssdpOn) {
+	if(ssdpServer == null) {
 		logger.info('ssdpSrvInit: starting (PID: ' + process.pid + ')');
 
 		ssdpServer = ssdp({
@@ -415,7 +419,12 @@ function ssdpSrvInit() {
 			    maxHops: 4
 			}]
 		});
+		ssdpSrvStart();
+	}
+}
 
+function ssdpSrvStart() {
+	if(!ssdpOn) {
 		ssdpOn = true;
 
 		ssdpServer.advertise({
