@@ -14,8 +14,8 @@
         "url": "https://github.com/tonesto7/nst-manager/issues"
     },
     "dependencies": {
-        "eventsource": "^1.0.1",
-        "express": "^4.15.2",
+        "eventsource": "^1.0.2",
+        "express": "^4.15.3",
         "request": "^2.81.0",
         "@achingbrain/ssdp": "^2.1.2",
         "uuid": "^3.0.1",

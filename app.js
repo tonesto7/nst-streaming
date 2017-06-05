@@ -246,7 +246,7 @@ function startStreaming() {
 						adjC2 = savedMyCameras[c1];
 						var myisonline = adjC1.is_online;
 						var myisstreaming = adjC1.is_streaming;
-						logger.info('myisstreaming myisonline ' + myisstreaming + ' ' + myisonline);
+						logger.info('myisstreaming: ' + myisstreaming, 'myisonline: ' + myisonline);
 						if(!myisonline || !myisstreaming) {
 							if(adjC1.web_url) { adjC1.web_url = ""; }
 							if(adjC1.snapshot_url) { adjC1.snapshot_url = ""; }
@@ -401,7 +401,7 @@ function sendStatusToST(reason) {
 }
 
 function ssdpSrvInit() {
-	if(ssdpServer == null) {
+	if(ssdpServer === null) {
 		logger.info('ssdpSrvInit: starting (PID: ' + process.pid + ')');
 
 		ssdpServer = ssdp({
