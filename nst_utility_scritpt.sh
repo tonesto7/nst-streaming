@@ -2,6 +2,7 @@
 
 # ---------------------------------GLOBAL VARIABLES--------------------------------------
 _scriptVer="0.2"
+_srvcVer="1.0.0"
 _useSudo="false"
 
 _currentUser="$USER"
@@ -234,7 +235,7 @@ update_srvc() {
             sudoPreCmd "systemctl daemon-reload"
             echo "Enabling NST Service (Systemd)$usedSudoDesc"
             sudoPreCmd "systemctl enable $cur_srvc_name"
-            echo "Starting NST Streaming Service$usedSudoDesc"
+            echo "Starting NST Streaming Service  (v$_srvcVer)$usedSudoDesc"
             sudoPreCmd "systemctl start $cur_srvc_name"
         else
             echo "Error: Copying Service File to Systemd folder didn't work"
