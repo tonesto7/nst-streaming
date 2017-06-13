@@ -201,6 +201,26 @@ modify_srvc_file_for_user() {
     fi
 }
 
+create_srvc_file_for_user() {
+    echo "Creating Service File with Current User Path [$_userDir]$usedSudoDesc"
+    echo "[Unit]" >> $new_srvc_src_path
+    echo "Description=NST Manager Node Streaming" >> $new_srvc_src_path
+    echo "After=network.target remote-fs.target" >> $new_srvc_src_path
+    echo "" >> $new_srvc_src_path
+    echo "[Install]" >> $new_srvc_src_path
+    echo "WantedBy=multi-user.target" >> $new_srvc_src_path
+    echo "" >> $new_srvc_src_path
+    echo "[Service]" >> $new_srvc_src_path
+    echo "Type=simple" >> $new_srvc_src_path
+    echo "Enviroment=NODE_ENV=production" >> $new_srvc_src_path
+    echo "Enviroment=PORT=3000" >> $new_srvc_src_path
+    echo "ExecStart=/usr/bin/node app.js" >> $new_srvc_src_path
+    echo "Restart=always" >> $new_srvc_src_path
+    echo "RestartSec=10" >> $new_srvc_src_path
+    echo "KillMode=process" >> $new_srvc_src_path
+    echo "WorkingDirectory=/home/pi/nst-streaming-master" >> $new_srvc_src_path
+}
+
 remove_old_srvc() {
     echo ""
     echo "--------------------------------------------------------------"
@@ -220,10 +240,9 @@ remove_old_srvc() {
 update_srvc() {
     echo ""
     echo "--------------------------------------------------------------"
-    if [ -f $new_srvc_src_path ]; then
-        modify_srvc_file_for_user
-    else
-        echo "Error: New NST Service File ($new_srvc_src_path) Not Present."
+    create_srvc_file_for_user
+    if [! -f "$new_srvc_src_path"]; then
+        echo "Error: The created service file cannot be found"
         exit 1
     fi
     if [ ! -f "$old_srvc_path" ]; then
