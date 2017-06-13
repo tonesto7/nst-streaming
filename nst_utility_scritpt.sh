@@ -216,7 +216,7 @@ create_srvc_file_for_user() {
     echo "Restart=always" >> $new_srvc_src_path
     echo "RestartSec=10" >> $new_srvc_src_path
     echo "KillMode=process" >> $new_srvc_src_path
-    echo "WorkingDirectory=/home/pi/nst-streaming-master" >> $new_srvc_src_path
+    echo "WorkingDirectory=$working_app_dir" >> $new_srvc_src_path
     echo "" >> $new_srvc_src_path
     echo "[Install]" >> $new_srvc_src_path
     echo "WantedBy=multi-user.target" >> $new_srvc_src_path
@@ -242,7 +242,7 @@ update_srvc() {
     echo ""
     echo "--------------------------------------------------------------"
     create_srvc_file_for_user
-    if [! -f "$new_srvc_src_path"]; then
+    if [ ! -f "$new_srvc_src_path" ]; then
         echo "Error: The created service file cannot be found"
         exit 1
     fi
