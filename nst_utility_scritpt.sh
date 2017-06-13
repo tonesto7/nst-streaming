@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # ---------------------------------GLOBAL VARIABLES--------------------------------------
-_scriptVer="0.2"
+_scriptVer="0.3"
 _srvcVer="1.0.0"
 _useSudo="false"
 
@@ -203,12 +203,10 @@ modify_srvc_file_for_user() {
 
 create_srvc_file_for_user() {
     echo "Creating Service File with Current User Path [$_userDir]$usedSudoDesc"
+
     echo "[Unit]" >> $new_srvc_src_path
     echo "Description=NST Manager Node Streaming" >> $new_srvc_src_path
     echo "After=network.target remote-fs.target" >> $new_srvc_src_path
-    echo "" >> $new_srvc_src_path
-    echo "[Install]" >> $new_srvc_src_path
-    echo "WantedBy=multi-user.target" >> $new_srvc_src_path
     echo "" >> $new_srvc_src_path
     echo "[Service]" >> $new_srvc_src_path
     echo "Type=simple" >> $new_srvc_src_path
@@ -219,6 +217,9 @@ create_srvc_file_for_user() {
     echo "RestartSec=10" >> $new_srvc_src_path
     echo "KillMode=process" >> $new_srvc_src_path
     echo "WorkingDirectory=/home/pi/nst-streaming-master" >> $new_srvc_src_path
+    echo "" >> $new_srvc_src_path
+    echo "[Install]" >> $new_srvc_src_path
+    echo "WantedBy=multi-user.target" >> $new_srvc_src_path
 }
 
 remove_old_srvc() {
