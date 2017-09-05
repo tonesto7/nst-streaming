@@ -171,7 +171,7 @@ function manageStream() {
 		isStreaming = true;
 		stopSsdp();
 	} else {
-		logger.info('Streaming is ${isStreaming}; requestStreamOn is ${requestStreamOn} Received... | PID: ' + process.pid);
+		logger.info('Streaming is ' + isStreaming, '; requestStreamOn is ' + requestStreamOn, ' Received... | PID: ' + process.pid);
 /*
 		isStreaming = false;
 		resetSaved();
