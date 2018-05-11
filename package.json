@@ -1,5 +1,5 @@
 {
-    "name": "nest-samples",
+    "name": "nest-sample",
     "version": "1.0.0",
     "description": "Rest Streaming Service for NST-Manager (ST)",
     "private": true,
@@ -14,24 +14,22 @@
         "url": "https://github.com/tonesto7/nst-manager/issues"
     },
     "dependencies": {
-        "eventsource": "^1.0.4",
-        "express": "^4.15.3",
-        "request": "^2.81.0",
+        "eventsource": "^1.0.5",
+        "express": "^4.16.3",
+        "request": "^2.85.0",
         "@achingbrain/ssdp": "^2.1.2",
-        "uuid": "^3.0.1",
-        "node-datetime": "^1.0.0",
+        "uuid": "^3.2.1",
+        "node-datetime": "^2.0.6",
         "os": "^0.1.1",
-        "getos": "^3.0.1",
-        "moment": "^2.18.1",
-        "winston": "^2.3.1",
-        "winston-daily-rotate-file": "^1.4.6"
+        "getos": "^3.1.0",
+        "moment": "^2.22.1",
+        "winston": "^2.4.2",
+        "winston-daily-rotate-file": "^3.1.4"
     },
     "optionalDependencies": {
         "fsevents": "*"
     },
-    "contributors": [
-        {
-            "name": "Eric S."
-        }
-    ]
+    "contributors": [{
+        "name": "Eric S."
+    }]
 }
