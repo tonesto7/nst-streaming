@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '1.0.0';
+var appVer = '1.0.1';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -155,25 +155,40 @@ app.post('/status', function(req, res) {
 
 function manageStream() {
 	if (isStreaming && requestStreamOn == 'false') {
-		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
-		lastEventData = null;
+		logger.info('Request to Stop stream Received... | PID: ' + process.pid);
+		if(evtSource) { evtSource.close(); logger.info('Nest Connection has been Closed'); }
+		resetSaved();
 		isStreaming = false;
 		sendStatusToST('ManagerClosed');
 		//let a = gracefulStopNoMsg();
 		ssdpSrvStart();
 
 	} else if (!isStreaming && requestStreamOn == 'true') {
+		logger.info('Request to Start stream Received... | PID: ' + process.pid);
+		resetSaved();
 		sendTimerActive = false;
 		startStreaming();
 		isStreaming = true;
 		stopSsdp();
 	} else {
+		logger.info('Streaming is ' + isStreaming, '; requestStreamOn is ' + requestStreamOn, ' Received... | PID: ' + process.pid);
+/*
 		isStreaming = false;
-		lastEventData = null;
+		resetSaved();
 		sendStatusToST('ManagerClosed');
 		//let a = gracefulStopNoMsg();
 		ssdpSrvStart();
+*/
 	}
+}
+
+function resetSaved() {
+	savedMyStruct = {};
+	savedMyMeta = {};
+	savedMyThermostats = {};
+	savedMyProtects = {};
+	savedMyCameras = {};
+	lastEventData = null;
 }
 
 function startStreaming() {
@@ -300,15 +315,16 @@ function startStreaming() {
 	});
 
 	evtSource.addEventListener('open', function(e) {
-		logger.info('Nest Connection Opened!');
 		isStreaming = true;
+		resetSaved();
+		logger.info('Nest Connection Opened!');
 		stopSsdp();
 	});
 
 	evtSource.addEventListener('closed', function(e) {
 		logger.info('Nest Connection Closed!');
 		isStreaming = false;
-		lastEventData = null;
+		resetSaved();
 		sendStatusToST('NestConnectionClosed');
 		//let a = gracefulStopNoMsg();
 		ssdpSrvStart();
@@ -316,9 +332,9 @@ function startStreaming() {
 
 	evtSource.addEventListener('auth_revoked', function(e) {
 		logger.info('Stream Authentication token was revoked.');
-		if(evtSource) { evtSource.close(); logger.info('Streaming Connection has been Closed'); }
+		if(evtSource) { evtSource.close(); logger.info('Nest Connection has been Closed'); }
 		isStreaming = false;
-		lastEventData = null;
+		resetSaved();
 		sendStatusToST("Authrevoked");
 		//let a = gracefulStopNoMsg();
 		ssdpSrvStart();
@@ -333,10 +349,11 @@ function startStreaming() {
 			if(evtSource) {
 				evtSource.close();
 				//console.log(getPrettyDt() + ' - Warn: Streaming Connection has been Closed');
+				logger.info('Nest Connection has been Closed');
 			}
 		}
 		isStreaming = false;
-		lastEventData = null;
+		resetSaved();
 		sendStatusToST("NestStreamError");
 		//let a = gracefulStopNoMsg();
 		ssdpSrvStart();
@@ -361,7 +378,7 @@ function sendDataToST(data) {
 				return true;
 			} else {
 				logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
-				lastEventData = null;
+				resetSaved();
 				return false;
 			}
 		});
@@ -665,11 +682,11 @@ function exitHandler(options, err) {
 
 var gracefulStopNoMsg = function() {
 	logger.debug('gracefulStopNoMsg: ', process.pid);
-	lastEventData = null;
+	resetSaved();
 	isStreaming = false;
 	if(evtSource) {
 		evtSource.close(function () {
-			console.log('Nest Streaming Connection has been Closed');
+			console.log('Nest Connection has been Closed');
 		});
 	}
 
@@ -682,7 +699,7 @@ var gracefulStopNoMsg = function() {
 
 var gracefulStop = function() {
 	logger.debug('gracefulStop: ', 'ClosedByNodeService ' + process.pid);
-	lastEventData = null;
+	resetSaved();
 	isStreaming = false;
 	sendStatusToST('ClosedByNodeService');
 	a = gracefulStopNoMsg();
