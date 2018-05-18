@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '1.0.2';
+var appVer = '1.0.3';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -241,16 +241,16 @@ function startStreaming() {
                     }
                 }
 
-                if (mystruct.protects) {
-                    var pLen = mystruct.protects.length;
+                if (mystruct.smoke_co_alarms) {
+                    var pLen = mystruct.smoke_co_alarms.length;
                     for (i = 0; i < pLen; i++) {
-                        var p1 = mystruct.protects[i];
-                        if (JSON.stringify(mydata.devices.protects[p1]) != JSON.stringify(savedMyProtects[p1])) {
+                        var p1 = mystruct.smoke_co_alarms[i];
+                        if (JSON.stringify(mydata.devices.smoke_co_alarms[p1]) != JSON.stringify(savedMyProtects[p1])) {
                             chgd = true;
                             //logger.info('mystruct.protects ' + JSON.stringify(mystruct.protects));
-                            logger.info('protect changed ' + JSON.stringify(mystruct.protects[i]));
+                            logger.info('protect changed ' + JSON.stringify(mystruct.smoke_co_alarms[i]));
                         }
-                        savedMyProtects[p1] = mydata.devices.protects[p1];
+                        savedMyProtects[p1] = mydata.devices.smoke_co_alarms[p1];
                     }
                 }
 
