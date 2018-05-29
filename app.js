@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '1.0.3';
+var appVer = '1.0.4';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -203,6 +203,8 @@ function startStreaming() {
         //logger.debug(data);
         try {
             logger.info('New Nest API Event Data Received... | PID: ' + process.pid);
+            allEventCount += 1;
+            spokeWithNest = true;
             if (structure && data && lastEventData != data) {
                 var chgd = false;
 
@@ -230,14 +232,21 @@ function startStreaming() {
                     var tLen = mystruct.thermostats.length;
                     for (i = 0; i < tLen; i++) {
                         var t1 = mystruct.thermostats[i];
-                        if (JSON.stringify(mydata.devices.thermostats[t1]) != JSON.stringify(savedMyThermostats[t1])) {
+
+                        var adjT1 = {};
+                        var adjT2 = {};
+                        adjT1 = mydata.devices.thermostats[t1];
+                        adjT2 = savedMyThermostats[t1];
+                        if (adjT1.last_connection) { adjT1.last_connection = ""; }
+
+                        if (JSON.stringify(adjT1) != JSON.stringify(savedMyThermostats[t1])) {
                             chgd = true;
                             //logger.info('mystruct.thermostats ' + JSON.stringify(mystruct.thermostats));
                             logger.info('thermostat changed ' + JSON.stringify(mystruct.thermostats[i]));
                             //logger.info('typeof mystruct... ' + typeof t1);
                             //logger.info('typeof mydata... ' + typeof mydata.devices.thermostats[t1]);
                         }
-                        savedMyThermostats[t1] = mydata.devices.thermostats[t1];
+                        savedMyThermostats[t1] = adjT1;
                     }
                 }
 
@@ -245,12 +254,19 @@ function startStreaming() {
                     var pLen = mystruct.smoke_co_alarms.length;
                     for (i = 0; i < pLen; i++) {
                         var p1 = mystruct.smoke_co_alarms[i];
-                        if (JSON.stringify(mydata.devices.smoke_co_alarms[p1]) != JSON.stringify(savedMyProtects[p1])) {
+
+                        var adjP1 = {};
+                        var adjP2 = {};
+                        adjP1 = mydata.devices.smoke_co_alarms[p1];
+                        adjP2 = savedMyProtects[p1];
+                        if (adjP1.last_connection) { adjP1.last_connection = ""; }
+
+                        if (JSON.stringify(adjP1) != JSON.stringify(savedMyProtects[p1])) {
                             chgd = true;
                             //logger.info('mystruct.protects ' + JSON.stringify(mystruct.protects));
                             logger.info('protect changed ' + JSON.stringify(mystruct.smoke_co_alarms[i]));
                         }
-                        savedMyProtects[p1] = mydata.devices.smoke_co_alarms[p1];
+                        savedMyProtects[p1] = adjP1;
                     }
                 }
 
@@ -292,13 +308,18 @@ function startStreaming() {
                 					logger.info('mydata.structures ' + JSON.stringify(mydata.structures));
                 				}
                 */
+                lastEventDt = getDtNow();
+                lastEventData = data;
+                var timeww = 120
                 if (chgd) {
-                    if (theTimer) {
+                    if (theTimer) { // Override the timer
                         clearTimeout(theTimer);
                         theTimer = null;
+                        sendTimerActive = false;
                     }
-                    lastEventDt = getDtNow();
-                    lastEventData = data;
+                        timeww = 2
+		}
+		if(!theTimer) {
                     //logger.info('Setting send to ST timer for PID: ' + process.pid);
                     theTimer = setTimeout(function() {
                         sendTimerActive = false;
@@ -306,12 +327,10 @@ function startStreaming() {
                         eventCount += 1;
                         logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount + ' / ' + allEventCount);
                         sendDataToST(lastEventData);
-                    }, 2 * 1000);
+                    }, timeww * 1000);
                     sendTimerActive = true;
                 }
             }
-            allEventCount += 1;
-            spokeWithNest = true;
         } catch (ex) {
             logger.debug('evtSource (catch)...', e, 'readyState: ' + e.readyState);
         }
