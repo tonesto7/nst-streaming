@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '1.0.4';
+var appVer = '1.0.5';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -49,8 +49,11 @@ var allEventCount = 0;
 var savedMyStruct = {};
 var savedMyMeta = {};
 var savedMyThermostats = {};
+var savedMyThermostatsorig = {};
 var savedMyProtects = {};
+var savedMyProtectsorig = {};
 var savedMyCameras = {};
+var savedMyCamerasorig = {};
 
 var ssdp = require('@achingbrain/ssdp');
 var usnVal = 'urn:schemas-upnp-org:service:NST-Streaming:1';
@@ -189,8 +192,11 @@ function resetSaved() {
     savedMyStruct = {};
     savedMyMeta = {};
     savedMyThermostats = {};
+    savedMyThermostatsorig = {};
     savedMyProtects = {};
+    savedMyProtectsorig = {};
     savedMyCameras = {};
+    savedMyCamerasorig = {};
     lastEventData = null;
 }
 
@@ -207,6 +213,7 @@ function startStreaming() {
             spokeWithNest = true;
             if (structure && data && lastEventData != data) {
                 var chgd = false;
+                var somechg = false;
 
                 var t0 = JSON.parse(data);
                 var mydata = {};
@@ -234,10 +241,11 @@ function startStreaming() {
                         var t1 = mystruct.thermostats[i];
 
                         var adjT1 = {};
-                        var adjT2 = {};
                         adjT1 = mydata.devices.thermostats[t1];
-                        adjT2 = savedMyThermostats[t1];
-                        if (adjT1.last_connection) { adjT1.last_connection = ""; }
+                        if (JSON.stringify(adjT1) != JSON.stringify(savedMyThermostatsorig[t1])) {
+                            savedMyThermostatsorig[t1] = adjT1;
+                            if (adjT1.last_connection) { somechg = true; adjT1.last_connection = ""; }
+                        }
 
                         if (JSON.stringify(adjT1) != JSON.stringify(savedMyThermostats[t1])) {
                             chgd = true;
@@ -256,10 +264,11 @@ function startStreaming() {
                         var p1 = mystruct.smoke_co_alarms[i];
 
                         var adjP1 = {};
-                        var adjP2 = {};
                         adjP1 = mydata.devices.smoke_co_alarms[p1];
-                        adjP2 = savedMyProtects[p1];
-                        if (adjP1.last_connection) { adjP1.last_connection = ""; }
+                        if (JSON.stringify(adjP1) != JSON.stringify(savedMyProtectsorig[p1])) {
+                            savedMyProtectsorig[p1] = adjP1;
+                            if (adjP1.last_connection) { somechg = true; adjP1.last_connection = ""; }
+                        }
 
                         if (JSON.stringify(adjP1) != JSON.stringify(savedMyProtects[p1])) {
                             chgd = true;
@@ -277,21 +286,27 @@ function startStreaming() {
                         var adjC1 = {};
                         var adjC2 = {};
                         adjC1 = mydata.devices.cameras[c1];
-                        adjC2 = savedMyCameras[c1];
+                        adjC2 = savedMyCamerasorig[c1];
                         var myisonline = adjC1.is_online;
                         var myisstreaming = adjC1.is_streaming;
                         logger.info('myisstreaming: ' + myisstreaming, 'myisonline: ' + myisonline);
-                        if (!myisonline || !myisstreaming) {
-                            if (adjC1.web_url) { adjC1.web_url = ""; }
-                            if (adjC1.snapshot_url) { adjC1.snapshot_url = ""; }
-                            if (adjC1.app_url) { adjC1.app_url = ""; }
-                            if (adjC1.last_event) {
-                                if (adjC1.last_event.image_url) { adjC1.last_event.image_url = ""; }
-                                if (adjC1.last_event.web_url) { adjC1.last_event.web_url = ""; }
-                                if (adjC1.last_event.app_url) { adjC1.last_event.app_url = ""; }
-                                if (adjC1.last_event.animated_image_url) { adjC1.last_event.animated_image_url = ""; }
+
+                        if (JSON.stringify(adjC1) != JSON.stringify(adjC2)) {
+                            savedMyCamerasorig[c1] = adjC1;
+                            if (!myisonline || !myisstreaming) {
+                                somechg = true;
+                                if (adjC1.web_url) { adjC1.web_url = ""; }
+                                if (adjC1.snapshot_url) { adjC1.snapshot_url = ""; }
+                                if (adjC1.app_url) { adjC1.app_url = ""; }
+                                if (adjC1.last_event) {
+                                    if (adjC1.last_event.image_url) { adjC1.last_event.image_url = ""; }
+                                    if (adjC1.last_event.web_url) { adjC1.last_event.web_url = ""; }
+                                    if (adjC1.last_event.app_url) { adjC1.last_event.app_url = ""; }
+                                    if (adjC1.last_event.animated_image_url) { adjC1.last_event.animated_image_url = ""; }
+                                }
                             }
                         }
+                        adjC2 = savedMyCameras[c1];
                         if (JSON.stringify(adjC1) != JSON.stringify(adjC2)) {
                             chgd = true;
                             //logger.info('mystruct.cameras ' + JSON.stringify(mystruct.cameras));
@@ -319,7 +334,7 @@ function startStreaming() {
                     }
                         timeww = 2
 		}
-		if(!theTimer) {
+		if(!theTimer && (somechg || chgd)) {
                     //logger.info('Setting send to ST timer for PID: ' + process.pid);
                     theTimer = setTimeout(function() {
                         sendTimerActive = false;
