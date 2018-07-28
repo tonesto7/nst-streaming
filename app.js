@@ -556,7 +556,12 @@ function stopSsdp() {
     if (ssdpOn) {
         logger.info('stopSsdp: (PID: ' + process.pid + ')');
         ssdpOn = false;
-        ssdpServer.stop();
+        try {
+            ssdpServer.stop();
+            logger.info('ssdp terminated');
+        } catch (e) {
+            logger.warn('ssdp terminated');
+        }
     }
 }
 
