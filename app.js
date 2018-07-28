@@ -7,7 +7,7 @@
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
 */
 
-var appVer = '1.0.5';
+var appVer = '1.0.6';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -100,7 +100,7 @@ var logger = new(winston.Logger)({
         new(require('winston-daily-rotate-file'))({
             filename: `${logDir}/ - NST_Streaming_Service.log`,
             levels: 'trace',
-            colorize: true,
+            colorize: false,
             prettyPrint: true,
             timestamp: tsFormat,
             json: false,
@@ -244,7 +244,10 @@ function startStreaming() {
                         adjT1 = mydata.devices.thermostats[t1];
                         if (JSON.stringify(adjT1) != JSON.stringify(savedMyThermostatsorig[t1])) {
                             savedMyThermostatsorig[t1] = adjT1;
-                            if (adjT1.last_connection) { somechg = true; adjT1.last_connection = ""; }
+                            if (adjT1.last_connection) {
+                                somechg = true;
+                                adjT1.last_connection = "";
+                            }
                         }
 
                         if (JSON.stringify(adjT1) != JSON.stringify(savedMyThermostats[t1])) {
@@ -267,7 +270,10 @@ function startStreaming() {
                         adjP1 = mydata.devices.smoke_co_alarms[p1];
                         if (JSON.stringify(adjP1) != JSON.stringify(savedMyProtectsorig[p1])) {
                             savedMyProtectsorig[p1] = adjP1;
-                            if (adjP1.last_connection) { somechg = true; adjP1.last_connection = ""; }
+                            if (adjP1.last_connection) {
+                                somechg = true;
+                                adjP1.last_connection = "";
+                            }
                         }
 
                         if (JSON.stringify(adjP1) != JSON.stringify(savedMyProtects[p1])) {
@@ -332,9 +338,9 @@ function startStreaming() {
                         theTimer = null;
                         sendTimerActive = false;
                     }
-                        timeww = 2
-		}
-		if(!theTimer && (somechg || chgd)) {
+                    timeww = 2
+                }
+                if (!theTimer && (somechg || chgd)) {
                     //logger.info('Setting send to ST timer for PID: ' + process.pid);
                     theTimer = setTimeout(function() {
                         sendTimerActive = false;
