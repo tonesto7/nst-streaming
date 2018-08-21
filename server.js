@@ -1,13 +1,14 @@
 /*jshint esversion: 6 */
-/*
+
+/****************************************************************************************
 	NST-Streaming
 	Authors: Anthony Santilli and Eric Schott
-	Copyright 2017 Anthony Santilli
+	Copyright 2017, 2018 Anthony Santilli
 
 	Big thanks to Greg Hesp (@ghesp) for portions of the code and your helpful ideas.
-*/
+*****************************************************************************************/
 
-var appVer = '1.0.6';
+var appVer = '2.0.0';
 const nest_api_url = 'https://developer-api.nest.com';
 const winston = require('winston');
 const fs = require('fs');
@@ -31,6 +32,8 @@ if (!fs.existsSync(logDir)) {
 var evtSource;
 
 var nestToken = null;
+var stHubIp = null;
+var useLocalHub = false;
 var stToken = null;
 var callbackUrl = null;
 var requestStreamOn = false;
@@ -115,45 +118,25 @@ var logger = new(winston.Logger)({
 
 app.post('/stream', function(req, res) {
     nestToken = req.headers.nesttoken;
+    stHubIp = req.headers.sthubip;
+    useLocalHub = (req.headers.localstream === "true");
     callbackUrl = req.headers.callback;
     requestStreamOn = req.headers.connstatus;
     stToken = req.headers.sttoken;
     structure = req.headers.structure;
-    //logger.debug(req.headers);
+    // logger.debug(JSON.stringify(req.headers));
     manageStream();
 });
 
 //Returns Status of Service
 app.post('/status', function(req, res) {
     callbackUrl = req.headers.callback;
+    stHubIp = req.headers.sthubip;
+    useLocalHub = (req.headers.localstream === "true");
     stToken = req.headers.sttoken;
     structure = req.headers.structure;
     logger.info('SmartThings is Requesting Status... | PID: ' + process.pid);
-
-    var statRequest = require('request');
-    if (callbackUrl && stToken) {
-        spokeWithST = true;
-        statRequest({
-            url: callbackUrl + '/streamStatus?access_token=' + stToken,
-            method: 'POST',
-            json: {
-                'streaming': isStreaming,
-                'version': appVer,
-                'startupDt': getServiceUptime(),
-                'sessionEvts': eventCount,
-                'lastEvtDt': lastEventDt,
-                'hostInfo': getHostInfo()
-            }
-        }, function(error, response, body) {
-            if (error) {
-                logger.verbose('/status error... ', error, response.statusCode, response.statusMessage);
-            } else {
-                //logger.debug('/status... ', response.statusCode, body);
-            }
-        });
-    } else {
-        logger.trace('/status: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
-    }
+    sendStatusToST('StatusRequest');
 });
 
 function manageStream() {
@@ -177,14 +160,7 @@ function manageStream() {
         isStreaming = true;
         stopSsdp();
     } else {
-        logger.info('Streaming is ' + isStreaming, '; requestStreamOn is ' + requestStreamOn, ' Received... | PID: ' + process.pid);
-        /*
-        		isStreaming = false;
-        		resetSaved();
-        		sendStatusToST('ManagerClosed');
-        		//let a = gracefulStopNoMsg();
-        		ssdpSrvStart();
-        */
+        logger.info('Streaming is ' + isStreaming, '| requestStreamOn is ' + requestStreamOn, ' Received... | PID: ' + process.pid);
     }
 }
 
@@ -295,20 +271,34 @@ function startStreaming() {
                         adjC2 = savedMyCamerasorig[c1];
                         var myisonline = adjC1.is_online;
                         var myisstreaming = adjC1.is_streaming;
-                        logger.info('myisstreaming: ' + myisstreaming, 'myisonline: ' + myisonline);
+                        // logger.info('myisstreaming: ' + myisstreaming, 'myisonline: ' + myisonline);
 
                         if (JSON.stringify(adjC1) != JSON.stringify(adjC2)) {
                             savedMyCamerasorig[c1] = adjC1;
                             if (!myisonline || !myisstreaming) {
                                 somechg = true;
-                                if (adjC1.web_url) { adjC1.web_url = ""; }
-                                if (adjC1.snapshot_url) { adjC1.snapshot_url = ""; }
-                                if (adjC1.app_url) { adjC1.app_url = ""; }
+                                if (adjC1.web_url) {
+                                    adjC1.web_url = "";
+                                }
+                                if (adjC1.snapshot_url) {
+                                    adjC1.snapshot_url = "";
+                                }
+                                if (adjC1.app_url) {
+                                    adjC1.app_url = "";
+                                }
                                 if (adjC1.last_event) {
-                                    if (adjC1.last_event.image_url) { adjC1.last_event.image_url = ""; }
-                                    if (adjC1.last_event.web_url) { adjC1.last_event.web_url = ""; }
-                                    if (adjC1.last_event.app_url) { adjC1.last_event.app_url = ""; }
-                                    if (adjC1.last_event.animated_image_url) { adjC1.last_event.animated_image_url = ""; }
+                                    if (adjC1.last_event.image_url) {
+                                        adjC1.last_event.image_url = "";
+                                    }
+                                    if (adjC1.last_event.web_url) {
+                                        adjC1.last_event.web_url = "";
+                                    }
+                                    if (adjC1.last_event.app_url) {
+                                        adjC1.last_event.app_url = "";
+                                    }
+                                    if (adjC1.last_event.animated_image_url) {
+                                        adjC1.last_event.animated_image_url = "";
+                                    }
                                 }
                             }
                         }
@@ -322,13 +312,12 @@ function startStreaming() {
                     }
                 }
 
-                /*
-                				if((eventCount % 5) == 0) {
-                					logger.info('mydata.devices ' + JSON.stringify(mydata.devices));
-                					logger.info('mydata.metadata ' + JSON.stringify(mydata.metadata));
-                					logger.info('mydata.structures ' + JSON.stringify(mydata.structures));
-                				}
-                */
+                // if((eventCount % 5) == 0) {
+                //     logger.info('mydata.devices ' + JSON.stringify(mydata.devices));
+                //     logger.info('mydata.metadata ' + JSON.stringify(mydata.metadata));
+                //     logger.info('mydata.structures ' + JSON.stringify(mydata.structures));
+                // }
+
                 lastEventDt = getDtNow();
                 lastEventData = data;
                 var timeww = 120
@@ -346,7 +335,7 @@ function startStreaming() {
                         sendTimerActive = false;
                         theTimer = null;
                         eventCount += 1;
-                        logger.info('Sent Nest API Event Data to NST Manager Client (ST) | Event#: ' + eventCount + ' / ' + allEventCount);
+                        logger.info('Sent Nest API Event Data to NST Manager Client (ST) | LocalHub: (' + useLocalHub + ') | Event#: ' + eventCount + ' / ' + allEventCount);
                         sendDataToST(lastEventData);
                     }, timeww * 1000);
                     sendTimerActive = true;
@@ -381,7 +370,7 @@ function startStreaming() {
         }
         isStreaming = false;
         resetSaved();
-        sendStatusToST("Authrevoked");
+        sendStatusToST('Authrevoked');
         //let a = gracefulStopNoMsg();
         ssdpSrvStart();
     });
@@ -400,7 +389,7 @@ function startStreaming() {
         }
         isStreaming = false;
         resetSaved();
-        sendStatusToST("NestStreamError");
+        sendStatusToST('NestStreamError');
         //let a = gracefulStopNoMsg();
         ssdpSrvStart();
     };
@@ -408,58 +397,129 @@ function startStreaming() {
 }
 
 function sendDataToST(data) {
-    //logger.debug('sendDataToST: url ' + callbackUrl + ' and token ' + stToken + ' found');
-    if (data && callbackUrl && stToken) {
-        var options = {
-            uri: callbackUrl + '/receiveEventData?access_token=' + stToken,
-            method: 'POST',
-            body: data
-        };
-        request(options, function(error, response, body) {
-            if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
-                spokeWithST = true;
-                //logger.debug("sendDataToST body.id... ", body.id);
-                isStreaming = true;
-                stopSsdp();
-                return true;
-            } else {
-                logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
-                resetSaved();
-                return false;
-            }
-        });
+    // logger.debug('sendDataToST: useLocalHub ' + useLocalHub + ' and stHubIp ' + stHubIp + ' found');
+    if (useLocalHub === true) {
+        if (data && stHubIp) {
+            var options = {
+                uri: 'http://' + stHubIp + ':39500/event',
+                method: 'POST',
+                headers: {
+                    'evtSource': 'NST_Stream',
+                    'evtType': 'sendEventData'
+                },
+                body: data
+            };
+            request(options, function(error, response, body) {
+                // console.log("sendDataToST Response | message: ", response.statusMessage, ' | status:', response.statusCode);
+                if (!error && (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202)) {
+                    spokeWithST = true;
+                    //logger.debug("sendDataToST body.id... ", body.id);
+                    isStreaming = true;
+                    stopSsdp();
+                    return true;
+                } else {
+                    logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
+                    resetSaved();
+                    return false;
+                }
+            });
+        } else {
+            logger.trace('sendDataToST: Can\'t send Event Data to SmartThings because the your SmartThings Hub IP is missing...');
+        }
+    } else {
+        //logger.debug('sendDataToST: url ' + callbackUrl + ' and token ' + stToken + ' found');
+        if (data && callbackUrl && stToken) {
+            var options = {
+                uri: callbackUrl + '/receiveEventData?access_token=' + stToken,
+                method: 'POST',
+                body: data
+            };
+            request(options, function(error, response, body) {
+                if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
+                    spokeWithST = true;
+                    //logger.debug("sendDataToST body.id... ", body.id);
+                    isStreaming = true;
+                    stopSsdp();
+                    return true;
+                } else {
+                    logger.verbose('sendDataToST...error ', error, response.statusCode, response.statusMessage);
+                    resetSaved();
+                    return false;
+                }
+            });
+        } else {
+            logger.trace('sendDataToST: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
+        }
     }
 }
 
 function sendStatusToST(reason) {
-    //logger.debug('sendStatusToST: url ' + callbackUrl + ' and token ' + stToken + ' found, reason: ' + reason);
-    if (callbackUrl && stToken) {
-        var request2 = require('request');
-        var options = {
-            uri: callbackUrl + '/streamStatus?access_token=' + stToken,
-            method: 'POST',
-            json: {
-                'streaming': isStreaming,
-                'version': appVer,
-                'startupDt': getServiceUptime(),
-                'lastEvtDt': lastEventDt,
-                'sessionEvts': eventCount,
-                'hostInfo': getHostInfo(),
-                'exitReason': reason
-            }
-        };
-        request2(options, function(error, response, body) {
-            if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
-                spokeWithST = true;
-                //logger.debug("sendStatusToST...body ", body.id);
-                return true;
-            } else {
-                logger.verbose('sendStatusToST...error', error, response.statusCode, response.statusMessage);
-                return false;
-            }
-        });
+    // logger.debug('sendStatusToST: useLocalHub ' + useLocalHub + ' and sthubIp ' + stHubIp + ' found');
+    if (useLocalHub === true) {
+        if (stHubIp) {
+            var request2 = require('request');
+            var options = {
+                uri: 'http://' + stHubIp + ':39500/event',
+                method: 'POST',
+                headers: {
+                    'evtSource': 'NST_Stream',
+                    'evtType': 'streamStatus'
+                },
+                body: {
+                    'streaming': isStreaming,
+                    'version': appVer,
+                    'startupDt': getServiceUptime(),
+                    'lastEvtDt': lastEventDt,
+                    'sessionEvts': eventCount,
+                    'hostInfo': getHostInfo(),
+                    'exitReason': reason
+                },
+                json: true
+            };
+            request2(options, function(error, response, body) {
+                // console.log("sendStatusToST Response | message: ", response.statusMessage, ' | status:', response.statusCode);
+                if (!error && (response.statusCode === 200 || response.statusCode === 201 || response.statusCode === 202)) {
+                    spokeWithST = true;
+                    //logger.debug("sendStatusToST...body ", body.id);
+                    return true;
+                } else {
+                    logger.verbose('sendStatusToST...error', error, response.statusCode, response.statusMessage);
+                    return false;
+                }
+            });
+        } else {
+            logger.trace('sendStatusToST: Can\'t send Status back to SmartThings because the your SmartThings Hub IP is missing...');
+        }
     } else {
-        logger.trace('sendStatusToST: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
+        //logger.debug('sendStatusToST: url ' + callbackUrl + ' and token ' + stToken + ' found, reason: ' + reason);
+        if (callbackUrl && stToken) {
+            var request2 = require('request');
+            var options = {
+                uri: callbackUrl + '/streamStatus?access_token=' + stToken,
+                method: 'POST',
+                json: {
+                    'streaming': isStreaming,
+                    'version': appVer,
+                    'startupDt': getServiceUptime(),
+                    'lastEvtDt': lastEventDt,
+                    'sessionEvts': eventCount,
+                    'hostInfo': getHostInfo(),
+                    'exitReason': reason
+                }
+            };
+            request2(options, function(error, response, body) {
+                if (!error && (response.statusCode == 200 || response.statusCode == 201)) {
+                    spokeWithST = true;
+                    //logger.debug("sendStatusToST...body ", body.id);
+                    return true;
+                } else {
+                    logger.verbose('sendStatusToST...error', error, response.statusCode, response.statusMessage);
+                    return false;
+                }
+            });
+        } else {
+            logger.trace('sendStatusToST: Can\'t send Status back to SmartThings because the enpoint url or access token are missing...');
+        }
     }
 }
 
@@ -757,7 +817,9 @@ var gracefulStop = function() {
 };
 
 //do something when app is closing
-process.on('exit', exitHandler.bind(null, { exit: true }));
+process.on('exit', exitHandler.bind(null, {
+    exit: true
+}));
 
 //catches ctrl+c event
 process.on('SIGINT', gracefulStop);
