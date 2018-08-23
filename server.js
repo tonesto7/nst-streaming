@@ -156,11 +156,12 @@ function manageStream() {
         logger.info('Request to Start stream Received... | PID: ' + process.pid);
         resetSaved();
         sendTimerActive = false;
-        startStreaming();
         isStreaming = true;
+        startStreaming();
         stopSsdp();
     } else {
         logger.info('Streaming is ' + isStreaming, '| requestStreamOn is ' + requestStreamOn, ' Received... | PID: ' + process.pid);
+    	sendStatusToST('StatusRequest');
     }
 }
 
@@ -348,6 +349,7 @@ function startStreaming() {
 
     evtSource.addEventListener('open', function(e) {
         isStreaming = true;
+    	sendStatusToST('StatusRequest');
         resetSaved();
         logger.info('Nest Connection Opened!');
         stopSsdp();
