@@ -27,7 +27,7 @@
 
    1. Download the latest script to the local user folder
 
-        `wget https://nst-manager.com/files/nst_utility_script.sh -O nst_utility_script.sh`
+        `wget https://raw.githubusercontent.com/tonesto7/nst-streaming/master/nst_utility_script.sh -O nst_utility_script.sh`
 
    2. Make the script executable
 
@@ -71,7 +71,7 @@ You can view the logs in the console window with this command:
 ## Getting Updates
 To make sure you are running the latest script always pull in the latest script by running these two commands:
 
-`wget https://nst-manager.com/files/nst_utility_script.sh -O nst_utility_script.sh`
+`wget https://raw.githubusercontent.com/tonesto7/nst-streaming/master/nst_utility_script.sh -O nst_utility_script.sh`
 
 `./nst_utility_script.sh -u`
 
