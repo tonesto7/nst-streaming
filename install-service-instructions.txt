@@ -1,8 +1,8 @@
 ## Nest Real-time Event Streaming to SmartThings NST Manager
 
 ###### Versions:
- * Install Script: `0.8`
- * Service Package: `2.0.0`
+ * Install Script: `0.9`
+ * Service Package: `2.0.1`
 
 #### FYI:
 * While the events are received near Real-Time there is a still minor processing delay between receiving the Nest Event and it reflecting in ST (~3 seconds).
@@ -71,7 +71,7 @@ You can view the logs in the console window with this command:
 ## Getting Updates
 To make sure you are running the latest script always pull in the latest script by running these two commands:
 
-`wget https://nst-manager.com/files/nst_utility_script-6rfC6.sh -O nst_utility_script.sh`
+`wget https://nst-manager.com/files/nst_utility_script.sh -O nst_utility_script.sh`
 
 `./nst_utility_script.sh -u`
 
@@ -88,6 +88,6 @@ if you need to change it just use the install script:
 ----
 ## Available Script Parameters
 These parameters will executes different script functions:
-`./ nst_utility_script.sh [arg]`
+`./nst_utility_script.sh [arg]`
 
 ![image|642x394](upload://uKbV22fNTZIwRxa2HNs9cFoznN.png)
