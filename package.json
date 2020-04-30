@@ -1,35 +1,41 @@
 {
-    "name": "nst-streaming-service",
-    "version": "2.0.0",
-    "description": "Rest Streaming Service for NST-Manager (ST)",
-    "private": true,
-    "scripts": {
-        "start": "node server.js"
-    },
-    "homepage": "http://thingsthataresmart.wiki/index.php?title=NST_Manager",
-    "author": {
-        "name": "Anthony Santilli"
-    },
-    "bugs": {
-        "url": "https://github.com/tonesto7/nst-manager/issues"
-    },
-    "dependencies": {
-        "eventsource": "^1.0.5",
-        "express": "^4.16.3",
-        "request": "^2.88.0",
-        "@achingbrain/ssdp": "^2.1.2",
-        "uuid": "^3.3.2",
-        "node-datetime": "^2.0.9",
-        "os": "^0.1.1",
-        "getos": "^3.1.0",
-        "moment": "^2.22.2",
-        "winston": "^2.4.2",
-        "winston-daily-rotate-file": "^3.1.4"
-    },
-    "optionalDependencies": {
-        "fsevents": "*"
-    },
-    "contributors": [{
-        "name": "Eric S."
-    }]
+  "name": "nst-streaming-service",
+  "version": "2.0.0",
+  "description": "Rest Streaming Service for NST-Manager (ST)",
+  "private": true,
+  "scripts": {
+    "start": "node server.js",
+    "snyk-protect": "snyk protect",
+    "prepublish": "npm run snyk-protect"
+  },
+  "homepage": "http://thingsthataresmart.wiki/index.php?title=NST_Manager",
+  "author": {
+    "name": "Anthony Santilli"
+  },
+  "bugs": {
+    "url": "https://github.com/tonesto7/nst-manager/issues"
+  },
+  "dependencies": {
+    "eventsource": "^1.0.5",
+    "express": "^4.16.3",
+    "request": "^2.88.0",
+    "@achingbrain/ssdp": "^2.1.2",
+    "uuid": "^3.3.2",
+    "node-datetime": "^2.0.9",
+    "os": "^0.1.1",
+    "getos": "^3.1.0",
+    "moment": "^2.22.2",
+    "winston": "^2.4.2",
+    "winston-daily-rotate-file": "^3.1.4",
+    "snyk": "^1.316.1"
+  },
+  "optionalDependencies": {
+    "fsevents": "*"
+  },
+  "contributors": [
+    {
+      "name": "Eric S."
+    }
+  ],
+  "snyk": true
 }
